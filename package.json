@@ -1,0 +1,21 @@
+{
+  "name": "linux-overlay",
+  "version": "1.0.0",
+  "description": "A transparent overlay for Linux with click-through support and global hotkeys",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron . --enable-transparent-visuals --disable-gpu --no-sandbox"
+  },
+  "keywords": [
+    "electron",
+    "overlay",
+    "linux",
+    "transparent"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.2.0"
+  }
+}
+
