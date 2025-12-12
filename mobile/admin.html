@@ -11,15 +11,17 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: rgba(15, 15, 25, 0.95);
-      --bg-solid: #0f0f19;
-      --accent: #00d4aa;
-      --accent2: #7c3aed;
-      --text: #f0f0f5;
-      --text-dim: #a0a0b0;
-      --border: rgba(255, 255, 255, 0.1);
-      --danger: #ff4757;
-      --warning: #ffa502;
+      /* Theatre dark theme */
+      --bg: #000;
+      --bg-solid: #000;
+      --accent: #8a8a8a;
+      --accent2: #6f6f6f;
+      --text: #e8e8e8;
+      --text-dim: #9a9a9a;
+      --border: rgba(255, 255, 255, 0.10);
+      --border-strong: rgba(255, 255, 255, 0.18);
+      --danger: #b24b57;
+      --warning: #b08a46;
     }
 
     * {
@@ -49,17 +51,14 @@
     header {
       padding: 20px;
       text-align: center;
-      background: linear-gradient(180deg, rgba(124, 58, 237, 0.2), transparent);
+      background: rgba(255, 255, 255, 0.02);
       border-bottom: 1px solid var(--border);
     }
 
     header h1 {
       margin: 0;
       font: 600 20px 'JetBrains Mono', monospace;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: #a8a8a8;
     }
 
     header p {
@@ -87,8 +86,8 @@
     }
 
     .status-dot.connected {
-      background: var(--accent);
-      box-shadow: 0 0 10px var(--accent);
+      background: rgba(255, 255, 255, 0.55);
+      box-shadow: none;
     }
 
     /* Login panel */
@@ -121,8 +120,8 @@
     input[type="password"] {
       width: 100%;
       padding: 14px 16px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-strong);
       border-radius: 10px;
       color: var(--text);
       font: 16px 'Outfit', sans-serif;
@@ -132,8 +131,8 @@
 
     input[type="text"]:focus,
     input[type="password"]:focus {
-      border-color: var(--accent2);
-      background: rgba(124, 58, 237, 0.05);
+      border-color: rgba(255, 255, 255, 0.28);
+      background: rgba(255, 255, 255, 0.04);
     }
 
     input::placeholder {
@@ -143,11 +142,13 @@
     .btn {
       width: 100%;
       padding: 16px;
-      border: none;
+      border: 1px solid var(--border-strong);
       border-radius: 10px;
       font: 600 16px 'Outfit', sans-serif;
       cursor: pointer;
       transition: transform 0.1s, opacity 0.2s;
+      background: transparent;
+      color: var(--text);
     }
 
     .btn:active {
@@ -160,8 +161,8 @@
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--accent2), var(--accent));
-      color: white;
+      background: transparent;
+      color: var(--text);
     }
 
     .error {
@@ -202,8 +203,8 @@
     }
 
     .tab.active {
-      color: var(--accent);
-      border-bottom-color: var(--accent);
+      color: rgba(255, 255, 255, 0.85);
+      border-bottom-color: rgba(255, 255, 255, 0.28);
     }
 
     /* Tab content */
@@ -229,7 +230,7 @@
       display: flex;
       align-items: flex-start;
       gap: 10px;
-      background: rgba(255, 255, 255, 0.05);
+      background: transparent;
       padding: 12px;
       border-radius: 10px;
       border: 1px solid var(--border);
@@ -261,17 +262,18 @@
       width: 32px;
       height: 32px;
       border-radius: 8px;
-      background: rgba(255, 71, 87, 0.2);
-      border: none;
-      color: var(--danger);
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: rgba(255, 255, 255, 0.70);
       font-size: 14px;
       cursor: pointer;
       flex-shrink: 0;
     }
 
     .msg-item .delete-btn:hover {
-      background: var(--danger);
-      color: white;
+      background: transparent;
+      border-color: rgba(255, 255, 255, 0.28);
+      color: rgba(255, 255, 255, 0.85);
     }
 
     .empty-state {
@@ -284,7 +286,7 @@
     /* Message input area */
     #message-input-area {
       padding: 12px 16px;
-      background: rgba(0, 0, 0, 0.3);
+      background: rgba(0, 0, 0, 0.85);
       border-top: 1px solid var(--border);
     }
 
@@ -315,8 +317,8 @@
     #admin-msg-input {
       flex: 1;
       padding: 12px 14px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-strong);
       border-radius: 20px;
       color: var(--text);
       font: 15px 'Outfit', sans-serif;
@@ -324,16 +326,16 @@
     }
 
     #admin-msg-input:focus {
-      border-color: var(--accent);
+      border-color: rgba(255, 255, 255, 0.28);
     }
 
     #admin-send-btn {
       width: 44px;
       height: 44px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent2), var(--accent));
-      border: none;
-      color: white;
+      background: transparent;
+      border: 1px solid var(--border-strong);
+      color: rgba(255, 255, 255, 0.75);
       font-size: 18px;
       cursor: pointer;
       display: flex;
@@ -364,12 +366,12 @@
     input[type="range"] {
       flex: 1;
       height: 6px;
-      accent-color: var(--accent);
+      accent-color: #6a6a6a;
     }
 
     .setting-value {
       font: 600 18px 'JetBrains Mono', monospace;
-      color: var(--accent);
+      color: rgba(255, 255, 255, 0.75);
       min-width: 36px;
       text-align: center;
     }
@@ -414,7 +416,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
       border-radius: 28px;
       transition: 0.3s;
       pointer-events: none;
@@ -427,13 +429,13 @@
       width: 22px;
       left: 3px;
       bottom: 3px;
-      background: white;
+      background: rgba(255, 255, 255, 0.9);
       border-radius: 50%;
       transition: 0.3s;
     }
 
     .toggle input:checked + .toggle-slider {
-      background: var(--accent);
+      background: rgba(255, 255, 255, 0.16);
     }
 
     .toggle input:checked + .toggle-slider::before {
@@ -474,19 +476,20 @@
     }
     .blocked-ip-item .ip {
       font: 600 12px 'JetBrains Mono', monospace;
-      color: var(--accent);
+      color: rgba(255, 255, 255, 0.75);
       word-break: break-all;
     }
     .blocked-ip-item button {
       padding: 8px 10px;
       border-radius: 10px;
-      border: none;
-      background: rgba(255, 255, 255, 0.12);
-      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: transparent;
+      color: rgba(255, 255, 255, 0.80);
       cursor: pointer;
     }
     .blocked-ip-item button:hover {
-      background: rgba(255, 255, 255, 0.18);
+      background: transparent;
+      border-color: rgba(255, 255, 255, 0.28);
     }
 
     /* Emoji shortcuts */
@@ -499,8 +502,8 @@
     }
     #admin-emoji-bar::-webkit-scrollbar { height: 0; }
     .emoji-btn {
-      border: 1px solid rgba(255, 255, 255, 0.10);
-      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: transparent;
       color: var(--text);
       border-radius: 12px;
       padding: 10px 12px;
@@ -522,8 +525,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid rgba(255, 255, 255, 0.10);
-      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: transparent;
       font-size: 18px;
       flex: 0 0 auto;
     }
@@ -748,8 +751,9 @@
         hash = hash & hash;
       }
       const hue = Math.abs(hash) % 360;
-      const saturation = 65 + (Math.abs(hash >> 8) % 20);
-      const lightness = 65 + (Math.abs(hash >> 16) % 15);
+      // Muted colors for theatre use (avoid vibrant user hues)
+      const saturation = 28 + (Math.abs(hash >> 8) % 10);
+      const lightness = 56 + (Math.abs(hash >> 16) % 10);
       return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
     }
 

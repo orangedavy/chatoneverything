@@ -11,14 +11,16 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: rgba(15, 15, 25, 0.95);
-      --bg-solid: #0f0f19;
-      --accent: #00d4aa;
-      --accent2: #7c3aed;
-      --text: #f0f0f5;
-      --text-dim: #a0a0b0;
-      --border: rgba(255, 255, 255, 0.1);
-      --danger: #ff4757;
+      /* Theatre dark theme */
+      --bg: #000;
+      --bg-solid: #000;
+      --accent: #8a8a8a;
+      --accent2: #6f6f6f;
+      --text: #e8e8e8;
+      --text-dim: #9a9a9a;
+      --border: rgba(255, 255, 255, 0.10);
+      --border-strong: rgba(255, 255, 255, 0.18);
+      --danger: #b24b57;
     }
 
     * {
@@ -48,14 +50,14 @@
     header {
       padding: 20px;
       text-align: center;
-      background: linear-gradient(180deg, rgba(0, 212, 170, 0.15), transparent);
+      background: rgba(255, 255, 255, 0.02);
       border-bottom: 1px solid var(--border);
     }
 
     header h1 {
       margin: 0;
       font: 600 20px 'JetBrains Mono', monospace;
-      color: var(--accent);
+      color: #a8a8a8;
     }
 
     header p {
@@ -83,8 +85,8 @@
     }
 
     .status-dot.connected {
-      background: var(--accent);
-      box-shadow: 0 0 10px var(--accent);
+      background: rgba(255, 255, 255, 0.55);
+      box-shadow: none;
     }
 
     /* Connection panel */
@@ -116,8 +118,8 @@
     input[type="text"] {
       width: 100%;
       padding: 14px 16px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-strong);
       border-radius: 10px;
       color: var(--text);
       font: 16px 'Outfit', sans-serif;
@@ -126,8 +128,8 @@
     }
 
     input[type="text"]:focus {
-      border-color: var(--accent);
-      background: rgba(0, 212, 170, 0.05);
+      border-color: rgba(255, 255, 255, 0.28);
+      background: rgba(255, 255, 255, 0.04);
     }
 
     input[type="text"]::placeholder {
@@ -137,11 +139,13 @@
     .btn {
       width: 100%;
       padding: 16px;
-      border: none;
+      border: 1px solid var(--border-strong);
       border-radius: 10px;
       font: 600 16px 'Outfit', sans-serif;
       cursor: pointer;
       transition: transform 0.1s, opacity 0.2s;
+      background: transparent;
+      color: var(--text);
     }
 
     .btn:active {
@@ -154,12 +158,12 @@
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      color: white;
+      background: transparent;
+      color: var(--text);
     }
 
     .btn-secondary {
-      background: rgba(255, 255, 255, 0.1);
+      background: transparent;
       color: var(--text);
     }
 
@@ -189,7 +193,7 @@
     }
 
     .msg {
-      background: rgba(255, 255, 255, 0.05);
+      background: transparent;
       padding: 10px 14px;
       border-radius: 10px;
       border: 1px solid var(--border);
@@ -198,19 +202,12 @@
     }
 
     .msg::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 3px;
-      height: 100%;
-      background: linear-gradient(180deg, var(--accent), var(--accent2));
-      border-radius: 3px 0 0 3px;
+      content: none;
     }
 
     .msg .user {
       font: 600 11px 'JetBrains Mono', monospace;
-      color: var(--accent);
+      color: var(--text-dim);
       margin-right: 8px;
     }
 
@@ -220,8 +217,8 @@
     }
 
     .msg.own {
-      background: rgba(0, 212, 170, 0.1);
-      border-color: rgba(0, 212, 170, 0.3);
+      background: transparent;
+      border-color: var(--border);
     }
 
     .empty-state {
@@ -239,7 +236,7 @@
     /* Message input */
     #input-area {
       padding: 16px;
-      background: rgba(0, 0, 0, 0.3);
+      background: rgba(0, 0, 0, 0.85);
       border-top: 1px solid var(--border);
     }
 
@@ -251,8 +248,8 @@
     #msg-input {
       flex: 1;
       padding: 14px 16px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-strong);
       border-radius: 24px;
       color: var(--text);
       font: 16px 'Outfit', sans-serif;
@@ -260,16 +257,16 @@
     }
 
     #msg-input:focus {
-      border-color: var(--accent);
+      border-color: rgba(255, 255, 255, 0.28);
     }
 
     #send-btn {
       width: 50px;
       height: 50px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      border: none;
-      color: white;
+      background: transparent;
+      border: 1px solid var(--border-strong);
+      color: rgba(255, 255, 255, 0.75);
       font-size: 20px;
       cursor: pointer;
       display: flex;
@@ -309,8 +306,8 @@
     }
     #emoji-bar::-webkit-scrollbar { height: 0; }
     .emoji-btn {
-      border: 1px solid rgba(255, 255, 255, 0.10);
-      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: transparent;
       color: var(--text);
       border-radius: 12px;
       padding: 10px 12px;
@@ -349,7 +346,7 @@
     .feedback-card {
       width: 100%;
       max-width: 440px;
-      background: rgba(15, 15, 25, 0.96);
+      background: rgba(0, 0, 0, 0.92);
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 14px;
       padding: 16px;
@@ -357,7 +354,7 @@
     }
     .feedback-title {
       font: 600 14px 'JetBrains Mono', monospace;
-      color: var(--text);
+      color: #a8a8a8;
       margin-bottom: 12px;
       text-transform: uppercase;
       letter-spacing: 0.6px;
@@ -372,16 +369,16 @@
       height: 44px;
       border-radius: 12px;
       border: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(255, 255, 255, 0.06);
+      background: transparent;
       color: rgba(255, 255, 255, 0.55);
       font-size: 22px;
       line-height: 1;
       cursor: pointer;
     }
     .star-btn.filled {
-      color: #ffd166;
-      border-color: rgba(255, 209, 102, 0.5);
-      background: rgba(255, 209, 102, 0.10);
+      color: rgba(255, 255, 255, 0.80);
+      border-color: rgba(255, 255, 255, 0.28);
+      background: rgba(255, 255, 255, 0.04);
     }
     #feedback-text {
       width: 100%;
@@ -390,13 +387,13 @@
       padding: 12px 12px;
       border-radius: 12px;
       border: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.03);
       color: var(--text);
       font: 14px 'Outfit', sans-serif;
       outline: none;
     }
     #feedback-text:focus {
-      border-color: rgba(0, 212, 170, 0.65);
+      border-color: rgba(255, 255, 255, 0.28);
     }
     .feedback-meta {
       display: flex;
@@ -905,8 +902,9 @@
         hash = hash & hash;
       }
       const hue = Math.abs(hash) % 360;
-      const saturation = 65 + (Math.abs(hash >> 8) % 20);
-      const lightness = 65 + (Math.abs(hash >> 16) % 15);
+      // Muted colors for theatre use (avoid vibrant user hues)
+      const saturation = 28 + (Math.abs(hash >> 8) % 10);
+      const lightness = 56 + (Math.abs(hash >> 16) % 10);
       return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
     }
 
