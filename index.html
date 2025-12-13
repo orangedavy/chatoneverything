@@ -332,6 +332,81 @@
       opacity: 0.95;
     }
 
+    /* Admin password show/hide (settings) */
+    #settings .password-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 4px 0 12px 0;
+    }
+    #settings .password-input-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+    }
+    #settings #admin-password {
+      width: 100%;
+      padding: 10px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.06);
+      font: 600 11px 'JetBrains Mono', monospace;
+      color: var(--accent);
+      outline: none;
+      user-select: none; /* selectable only when visible */
+      -webkit-user-select: none;
+      padding-right: 34px; /* space for copy icon */
+    }
+    #settings #admin-password.visible {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    #settings #admin-password-copy {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(0, 0, 0, 0.20);
+      color: rgba(255, 255, 255, 0.88);
+      display: none; /* only shown when password visible */
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+      font-size: 14px;
+      z-index: 2;
+    }
+    #settings #admin-password-copy:hover {
+      border-color: rgba(255, 255, 255, 0.18);
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #settings #admin-password-copy:active {
+      transform: translateY(-50%) scale(0.98);
+    }
+    #settings #admin-password-copy.show {
+      display: inline-flex;
+    }
+    #settings #admin-password-toggle,
+    #settings #admin-password-copy-btn {
+      flex: 0 0 auto;
+      padding: 10px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.10);
+      color: var(--text);
+      font: 600 11px 'JetBrains Mono', monospace;
+      cursor: pointer;
+    }
+    #settings #admin-password-toggle:hover,
+    #settings #admin-password-copy-btn:hover {
+      background: rgba(255, 255, 255, 0.16);
+    }
+
     /* Settings backdrop */
     #settings-backdrop, #confirm-backdrop {
       display: none;
@@ -457,12 +532,18 @@
           <a style="font:500 11px 'JetBrains Mono',monospace;margin:4px 0 12px 0;word-break:break-all;display:block" class="settings-link" id="admin-url" href="#">Loading...</a>
           
           <label>Admin Password</label>
-          <div style="font:600 11px 'JetBrains Mono',monospace;color:var(--accent);margin:4px 0 12px 0" id="admin-password">--------</div>
+          <div class="password-row">
+            <div class="password-input-wrap">
+              <input id="admin-password" type="password" value="--------" readonly aria-label="Admin password">
+              <button id="admin-password-copy" type="button" aria-label="Copy admin password" title="Copy">📋</button>
+            </div>
+            <button id="admin-password-toggle" type="button" aria-label="Show admin password">Show</button>
+          </div>
 
           <label>Hotkey</label>
-          <div style="font:600 11px 'JetBrains Mono',monospace;color:var(--accent);margin:4px 0 12px 0" id="admin-password">Ctrl+Shift+O/F9</div>
+          <div style="font:600 11px 'JetBrains Mono',monospace;color:var(--accent);margin:4px 0 12px 0" id="hotkey-value">Ctrl+Shift+O/F9</div>
           <label>Support</label>
-          <div style="font:600 11px 'JetBrains Mono',monospace;color:var(--accent);margin:4px 0 12px 0" id="admin-password">Sumedh Supe</div>
+          <div style="font:600 11px 'JetBrains Mono',monospace;color:var(--accent);margin:4px 0 12px 0" id="support-value">Sumedh Supe</div>
         </div>
         
         <!-- Display Settings -->
@@ -516,7 +597,7 @@
   </div>
 
   <script>
-    const { ipcRenderer, shell } = require('electron');
+    const { ipcRenderer, shell, clipboard } = require('electron');
 
     const $ = id => document.getElementById(id);
     const app = $('app'), dragBar = $('drag-bar');
@@ -954,7 +1035,8 @@
       try {
         const info = await ipcRenderer.invoke('get-session-info');
         $('session-code').textContent = info.code;
-        $('admin-password').textContent = info.adminPassword;
+        const pw = $('admin-password');
+        if (pw) pw.value = info.adminPassword || '';
         setExternalLink($('mobile-url'), info.mobileUrl);
         setExternalLink($('admin-url'), info.adminUrl);
         mobileUrl = info.mobileUrl;
@@ -963,6 +1045,78 @@
       }
     }
     initSession();
+
+    // Admin password show/hide + selectable when visible
+    const adminPasswordInput = $('admin-password');
+    const adminPasswordToggle = $('admin-password-toggle');
+    const adminPasswordCopy = $('admin-password-copy');
+    let adminPasswordVisible = false;
+
+    function setAdminPasswordVisible(visible) {
+      adminPasswordVisible = !!visible;
+      if (!adminPasswordInput || !adminPasswordToggle) return;
+      adminPasswordInput.type = adminPasswordVisible ? 'text' : 'password';
+      adminPasswordInput.classList.toggle('visible', adminPasswordVisible);
+      adminPasswordToggle.textContent = adminPasswordVisible ? 'Hide' : 'Show';
+      adminPasswordToggle.setAttribute('aria-label', adminPasswordVisible ? 'Hide admin password' : 'Show admin password');
+      if (adminPasswordCopy) adminPasswordCopy.classList.toggle('show', adminPasswordVisible);
+
+      // Only allow selection/copy when visible
+      if (adminPasswordVisible) {
+        // Select all for quick copy
+        try {
+          adminPasswordInput.focus({ preventScroll: true });
+          adminPasswordInput.setSelectionRange(0, adminPasswordInput.value.length);
+        } catch (_) {}
+      } else {
+        try {
+          adminPasswordInput.setSelectionRange(0, 0);
+          adminPasswordInput.blur();
+        } catch (_) {}
+      }
+    }
+
+    if (adminPasswordToggle) {
+      adminPasswordToggle.onclick = () => setAdminPasswordVisible(!adminPasswordVisible);
+    }
+
+    async function copyAdminPassword() {
+      if (!adminPasswordVisible || !adminPasswordInput) return;
+      const text = String(adminPasswordInput.value || '');
+      if (!text) return;
+
+      let ok = false;
+      try {
+        if (clipboard && clipboard.writeText) {
+          clipboard.writeText(text);
+          ok = true;
+        }
+      } catch (_) {}
+
+      // Fallback (in case clipboard module is unavailable)
+      if (!ok) {
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+            ok = true;
+          }
+        } catch (_) {}
+      }
+
+      if (adminPasswordCopy) {
+        // Briefly swap the icon to confirm.
+        const prev = adminPasswordCopy.textContent;
+        adminPasswordCopy.textContent = ok ? '✓' : '!';
+        setTimeout(() => {
+          if (adminPasswordCopy) adminPasswordCopy.textContent = prev || '📋';
+        }, 700);
+      }
+    }
+
+    if (adminPasswordCopy) {
+      adminPasswordCopy.onclick = copyAdminPassword;
+    }
+    setAdminPasswordVisible(false);
 
     // Listen for open-settings command (on startup)
     ipcRenderer.on('open-settings', () => {

@@ -19,7 +19,7 @@
     "name": "Sumedh",
     "email": "sumedh88@outlook.com"
   },
-  "homepage": "https://github.com/sumsupee/livechat-overlay",
+  "homepage": "https://github.com/sumsupee/chat-on-everything",
   "license": "MIT",
   "dependencies": {
     "localtunnel": "^2.0.2",
