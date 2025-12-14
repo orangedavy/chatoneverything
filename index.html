@@ -168,6 +168,13 @@
     }
     #qr-overlay.visible { display: flex; }
     
+    #qr-overlay .qr-main-title {
+      font: 600 16px 'Outfit', sans-serif;
+      color: var(--accent);
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
     #qr-overlay img {
       width: 140px;
       height: 140px;
@@ -496,6 +503,7 @@
     
     <!-- QR Code Overlay -->
     <div id="qr-overlay">
+      <div class="qr-main-title">Chat on Everything</div>
       <img id="qr-image" src="" alt="QR Code">
       <div class="qr-title">Scan to Join</div>
       <div class="qr-url" id="qr-url"></div>
@@ -547,7 +555,12 @@
         </div>
         
         <!-- Display Settings -->
-        <label>Max Messages</label>
+        <label style="margin-top:0">
+          <input type="checkbox" id="hideIp" style="margin-right:8px;accent-color:var(--accent)">
+          Hide IP
+        </label>
+        
+        <label style="margin-top:16px">Max Messages</label>
         <div class="setting-row">
           <input type="range" id="maxMsgSlider" min="2" max="10" value="5">
           <span class="value" id="maxMsgValue">5</span>
@@ -876,6 +889,21 @@
       ipcRenderer.send('settings-changed', { showMobileLink: false });
     };
 
+    // Hide IP setting
+    const hideIpCheckbox = $('hideIp');
+    if (hideIpCheckbox) {
+      hideIpCheckbox.onchange = () => {
+        ipcRenderer.send('settings-changed', { hideIp: hideIpCheckbox.checked });
+        // Refresh session info to get updated URLs
+        initSession().then(() => {
+          // Update QR code if it's currently displayed
+          if (showMobileLinkCheckbox && showMobileLinkCheckbox.checked) {
+            updateQRDisplay(true);
+          }
+        });
+      };
+    }
+
     // Disable chat history setting
     const disableChatHistoryCheckbox = $('disableChatHistory');
     
@@ -1035,6 +1063,17 @@
     
     // Listen for settings updates from admin
     ipcRenderer.on('settings-update', (_, settings) => {
+      if (settings.hideIp !== undefined) {
+        const hideIpCheckbox = $('hideIp');
+        if (hideIpCheckbox) hideIpCheckbox.checked = settings.hideIp;
+        // Refresh session info to get updated URLs
+        initSession().then(() => {
+          // Update QR code if it's currently displayed
+          if (showMobileLinkCheckbox && showMobileLinkCheckbox.checked) {
+            updateQRDisplay(true);
+          }
+        });
+      }
       if (settings.maxMessages !== undefined) {
         maxMessages = settings.maxMessages;
         maxMsgSlider.value = maxMessages;

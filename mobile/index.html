@@ -532,7 +532,19 @@
     let ws = null;
     let username = '';
     let sessionCode = '';
+    let urlSessionCode = ''; // Session code from URL
     let disableChatHistory = true; // Default: only show own messages
+    
+    // Extract session code from URL query parameter
+    function getSessionCodeFromUrl() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('s') || '';
+      } catch (e) {
+        return '';
+      }
+    }
+    urlSessionCode = getSessionCodeFromUrl();
     let customEmoji = '⭐';
     let emojiDirectSend = true; // When true, emoji buttons send directly; when false, insert into text box
     let slowModeEnabled = false;
@@ -557,15 +569,44 @@
     const isSecure = window.location.protocol === 'https:';
 
     // Load saved values
-    serverInput.value = localStorage.getItem('livechat_server') || '';
+    // Check if we're accessing via local URL - if so, ALWAYS use local WebSocket
+    const isLocalUrl = !isSecure && 
+                      (window.location.hostname === 'localhost' || 
+                       window.location.hostname.match(/^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/) ||
+                       !window.location.hostname.includes('.') || 
+                       window.location.hostname.endsWith('.local'));
+    
+    // Check if default WebSocket URL was injected
+    if (window.__defaultWsUrl) {
+      serverInput.value = window.__defaultWsUrl;
+      // For local URLs, always override localStorage to ensure local WebSocket is used
+      if (isLocalUrl) {
+        localStorage.setItem('livechat_server', window.__defaultWsUrl);
+      } else {
+        localStorage.setItem('livechat_server', window.__defaultWsUrl);
+      }
+    } else if (isLocalUrl) {
+      // Force local WebSocket for local URLs, regardless of localStorage
+      const localWsUrl = window.location.hostname + ':8765';
+      serverInput.value = localWsUrl;
+      localStorage.setItem('livechat_server', localWsUrl);
+    } else {
+      serverInput.value = localStorage.getItem('livechat_server') || '';
+    }
     nameInput.value = localStorage.getItem('livechat_name') || '';
 
     // Auto-detect server from URL if accessed from same network
     if (!serverInput.value && window.location.hostname !== 'localhost') {
       if (isSecure) {
-        // For HTTPS tunnel, leave empty - user needs to enter WSS tunnel URL
-        // (HTTP and WS tunnels have different URLs with localtunnel)
-        serverInput.placeholder = 'Enter WSS tunnel URL';
+        // For HTTPS tunnel, check meta tag for default WebSocket URL
+        const metaTag = document.querySelector('meta[name="default-ws-url"]');
+        if (metaTag && metaTag.content) {
+          serverInput.value = metaTag.content;
+          localStorage.setItem('livechat_server', metaTag.content);
+        } else {
+          // Leave empty - user needs to enter WSS tunnel URL
+          serverInput.placeholder = 'Enter WSS tunnel URL';
+        }
       } else {
         serverInput.value = window.location.hostname + ':8765';
       }
@@ -614,8 +655,8 @@
       let wsUrl;
       if (server.startsWith('ws://') || server.startsWith('wss://')) {
         wsUrl = server;
-      } else if (isSecure || server.includes('.loca.lt') || server.includes('ngrok')) {
-        // Use secure WebSocket for HTTPS pages or known tunnel services
+      } else if (isSecure || server.includes('.loca.lt') || server.includes('ngrok') || server.includes('trycloudflare.com')) {
+        // Use secure WebSocket for HTTPS pages or known tunnel services (including Cloudflare)
         wsUrl = `wss://${server}`;
       } else {
         wsUrl = `ws://${server}`;
@@ -632,12 +673,9 @@
       }
 
       ws.onopen = () => {
-        setStatus(true, 'Connected');
-        connectPanel.classList.add('hidden');
-        chatPanel.classList.add('visible');
-        reconnectAttempts = 0;
-        startHeartbeat();
-        updateFeedbackOverlay();
+        setStatus(false, 'Joining session...');
+        // Send join request with session code from URL
+        ws.send(JSON.stringify({ type: 'join', sessionCode: urlSessionCode }));
       };
 
       ws.onmessage = handleWebSocketMessage;
@@ -665,7 +703,32 @@
       try {
         const data = JSON.parse(event.data);
         
-        if (data.type === 'session') {
+        if (data.type === 'join-result') {
+          if (data.success) {
+            sessionCode = data.code || urlSessionCode;
+            setStatus(true, 'Connected');
+            connectPanel.classList.add('hidden');
+            chatPanel.classList.add('visible');
+            reconnectAttempts = 0;
+            startHeartbeat();
+            updateFeedbackOverlay();
+          } else {
+            // Session code invalid - redirect to join page
+            setStatus(false, 'Session not found');
+            showError('Session not found. The event may have ended.');
+            connectBtn.disabled = false;
+            connectBtn.textContent = 'Connect';
+            // Redirect to base URL to show join page
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 2000);
+          }
+        } else if (data.type === 'error') {
+          if (data.error === 'session_not_validated') {
+            // Session was not validated - resend join request
+            ws.send(JSON.stringify({ type: 'join', sessionCode: urlSessionCode }));
+          }
+        } else if (data.type === 'session') {
           sessionCode = data.code;
           updateFeedbackOverlay();
         } else if (data.type === 'blocked') {
@@ -725,6 +788,29 @@
               }
             }
             updateFeedbackOverlay();
+          }
+          // Autofill WebSocket URL if provided and field is empty or contains local network address
+          if (data.wsUrl) {
+            const currentValue = serverInput.value.trim();
+            // Check if current value is a local network address or empty
+            const isLocalNetwork = !currentValue || /^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|localhost|127\.|.*:8765$)/.test(currentValue);
+            // Prefer Cloudflare URLs over local addresses
+            const isCloudflareUrl = data.wsUrl.includes('trycloudflare.com');
+            
+            if (isLocalNetwork || (isCloudflareUrl && !currentValue.includes('trycloudflare.com'))) {
+              // Extract hostname from ws:// or wss:// URL (remove protocol, keep hostname:port if present)
+              let extractedUrl = data.wsUrl;
+              // Remove ws:// or wss:// prefix
+              extractedUrl = extractedUrl.replace(/^wss?:\/\//, '');
+              // Remove trailing slash if present
+              extractedUrl = extractedUrl.replace(/\/$/, '');
+              
+              if (extractedUrl) {
+                serverInput.value = extractedUrl;
+                localStorage.setItem('livechat_server', serverInput.value);
+                console.log('Autofilled WebSocket URL:', extractedUrl);
+              }
+            }
           }
         }
         // Ignore other message types (including 'pong' responses)
@@ -805,14 +891,17 @@
     function attemptReconnect() {
       if (ws && ws.readyState === WebSocket.OPEN) return; // Already connected
       
-      const server = lastServerAddress;
-      if (!server || !username) return;
+      const server = lastServerAddress || serverInput.value.trim();
+      if (!server || !username) {
+        // Don't try to reconnect if we don't have a valid server address
+        return;
+      }
       
       // Create WebSocket connection
       let wsUrl;
       if (server.startsWith('ws://') || server.startsWith('wss://')) {
         wsUrl = server;
-      } else if (isSecure || server.includes('.loca.lt') || server.includes('ngrok')) {
+      } else if (isSecure || server.includes('.loca.lt') || server.includes('ngrok') || server.includes('trycloudflare.com')) {
         wsUrl = `wss://${server}`;
       } else {
         wsUrl = `ws://${server}`;
@@ -826,10 +915,9 @@
       }
       
       ws.onopen = () => {
-        setStatus(true, 'Connected');
-        reconnectAttempts = 0;
-        startHeartbeat();
-        updateFeedbackOverlay();
+        setStatus(false, 'Rejoining session...');
+        // Send join request with session code from URL
+        ws.send(JSON.stringify({ type: 'join', sessionCode: urlSessionCode }));
       };
       
       ws.onmessage = handleWebSocketMessage;

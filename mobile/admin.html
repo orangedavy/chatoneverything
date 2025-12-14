@@ -592,6 +592,14 @@
 
       <!-- Settings Tab -->
       <div class="tab-content" id="tab-settings">
+        <div class="toggle-row">
+          <label>Hide IP</label>
+          <div class="toggle">
+            <input type="checkbox" id="hideIp">
+            <span class="toggle-slider"></span>
+          </div>
+        </div>
+
         <div class="setting-group">
           <label>Max Messages</label>
           <div class="setting-row">
@@ -719,6 +727,7 @@
     const messagesList = $('messages-list');
 
     // Settings elements
+    const hideIpToggle = $('hideIp');
     const maxMsgSlider = $('maxMsgSlider');
     const maxMsgValue = $('maxMsgValue');
     const fontSizeSlider = $('fontSizeSlider');
@@ -770,11 +779,42 @@
     const isSecure = window.location.protocol === 'https:';
 
     // Load saved values
-    serverInput.value = localStorage.getItem('livechat_server') || '';
+    // Check if we're accessing via local URL - if so, ALWAYS use local WebSocket
+    const isLocalUrl = !isSecure && 
+                      (window.location.hostname === 'localhost' || 
+                       window.location.hostname.match(/^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/) ||
+                       !window.location.hostname.includes('.') || 
+                       window.location.hostname.endsWith('.local'));
+    
+    // Check if default WebSocket URL was injected
+    if (window.__defaultWsUrl) {
+      serverInput.value = window.__defaultWsUrl;
+      // For local URLs, always override localStorage to ensure local WebSocket is used
+      if (isLocalUrl) {
+        localStorage.setItem('livechat_server', window.__defaultWsUrl);
+      } else {
+        localStorage.setItem('livechat_server', window.__defaultWsUrl);
+      }
+    } else if (isLocalUrl) {
+      // Force local WebSocket for local URLs, regardless of localStorage
+      const localWsUrl = window.location.hostname + ':8765';
+      serverInput.value = localWsUrl;
+      localStorage.setItem('livechat_server', localWsUrl);
+    } else {
+      serverInput.value = localStorage.getItem('livechat_server') || '';
+    }
+    
     if (!serverInput.value && window.location.hostname !== 'localhost') {
       if (isSecure) {
-        // For HTTPS tunnel, leave empty - user needs to enter WSS tunnel URL
-        serverInput.placeholder = 'Enter WSS tunnel URL';
+        // For HTTPS tunnel, check meta tag for default WebSocket URL
+        const metaTag = document.querySelector('meta[name="default-ws-url"]');
+        if (metaTag && metaTag.content) {
+          serverInput.value = metaTag.content;
+          localStorage.setItem('livechat_server', metaTag.content);
+        } else {
+          // Leave empty - user needs to enter WSS tunnel URL
+          serverInput.placeholder = 'Enter WSS tunnel URL';
+        }
       } else {
         serverInput.value = window.location.hostname + ':8765';
       }
@@ -844,8 +884,8 @@
       let wsUrl;
       if (server.startsWith('ws://') || server.startsWith('wss://')) {
         wsUrl = server;
-      } else if (isSecure || server.includes('.loca.lt') || server.includes('ngrok')) {
-        // Use secure WebSocket for HTTPS pages or known tunnel services
+      } else if (isSecure || server.includes('.loca.lt') || server.includes('ngrok') || server.includes('trycloudflare.com')) {
+        // Use secure WebSocket for HTTPS pages or known tunnel services (including Cloudflare)
         wsUrl = `wss://${server}`;
       } else {
         wsUrl = `ws://${server}`;
@@ -932,6 +972,29 @@
           if (data.settings) {
             applySettings(data.settings);
           }
+          // Autofill WebSocket URL if provided and field is empty or contains local network address
+          if (data.wsUrl) {
+            const currentValue = serverInput.value.trim();
+            // Check if current value is a local network address or empty
+            const isLocalNetwork = !currentValue || /^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|localhost|127\.|.*:8765$)/.test(currentValue);
+            // Prefer Cloudflare URLs over local addresses
+            const isCloudflareUrl = data.wsUrl.includes('trycloudflare.com');
+            
+            if (isLocalNetwork || (isCloudflareUrl && !currentValue.includes('trycloudflare.com'))) {
+              // Extract hostname from ws:// or wss:// URL (remove protocol, keep hostname:port if present)
+              let extractedUrl = data.wsUrl;
+              // Remove ws:// or wss:// prefix
+              extractedUrl = extractedUrl.replace(/^wss?:\/\//, '');
+              // Remove trailing slash if present
+              extractedUrl = extractedUrl.replace(/\/$/, '');
+              
+              if (extractedUrl) {
+                serverInput.value = extractedUrl;
+                localStorage.setItem('livechat_server', serverInput.value);
+                console.log('Autofilled WebSocket URL:', extractedUrl);
+              }
+            }
+          }
         }
         else if (data.type === 'slow-mode') {
           showSlowModeNotice(data.remainingSeconds || 1);
@@ -947,7 +1010,15 @@
             alert('Could not unblock IP (not blocked or invalid).');
           }
         }
-        // Ignore other message types like 'session', 'pong'
+        else if (data.type === 'error') {
+          if (data.error === 'session_not_validated') {
+            // Re-send admin auth if we have saved password
+            if (lastPassword) {
+              ws.send(JSON.stringify({ type: 'admin-auth', password: lastPassword }));
+            }
+          }
+        }
+        // Ignore other message types like 'session', 'pong', 'join-result'
       } catch (e) {
         console.error('Error handling message:', e, event.data);
       }
@@ -1028,7 +1099,7 @@
       let wsUrl;
       if (server.startsWith('ws://') || server.startsWith('wss://')) {
         wsUrl = server;
-      } else if (isSecure || server.includes('.loca.lt') || server.includes('ngrok')) {
+      } else if (isSecure || server.includes('.loca.lt') || server.includes('ngrok') || server.includes('trycloudflare.com')) {
         wsUrl = `wss://${server}`;
       } else {
         wsUrl = `ws://${server}`;
@@ -1103,6 +1174,9 @@
 
     function applySettings(settings) {
       isApplyingSettings = true; // Prevent feedback loop
+      if (settings.hideIp !== undefined && hideIpToggle) {
+        hideIpToggle.checked = settings.hideIp;
+      }
       if (settings.maxMessages !== undefined) {
         maxMsgSlider.value = settings.maxMessages;
         maxMsgValue.textContent = settings.maxMessages;
@@ -1332,6 +1406,13 @@
     };
 
     // Settings event listeners (with feedback loop protection)
+    if (hideIpToggle) {
+      hideIpToggle.onchange = () => {
+        if (isApplyingSettings) return;
+        sendSettings({ hideIp: hideIpToggle.checked });
+      };
+    }
+
     maxMsgSlider.oninput = () => {
       if (isApplyingSettings) return;
       const val = parseInt(maxMsgSlider.value);

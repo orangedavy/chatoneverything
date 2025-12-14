@@ -3,7 +3,8 @@ const WebSocket = require('ws');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const localtunnel = require('localtunnel');
+const { URL } = require('url');
+const { spawn } = require('child_process');
 
 let mainWindow;
 let isPassive = false; // Start in active mode
@@ -11,6 +12,8 @@ let wss = null;
 let httpServer = null;
 let httpTunnel = null;
 let wsTunnel = null;
+let httpTunnelProcess = null;
+let wsTunnelProcess = null;
 const WS_PORT = 8765;
 
 // Generate random session code
@@ -138,15 +141,50 @@ function normalizeIp(ip) {
 }
 
 function getClientIpFromReq(req) {
-    // Prefer forwarded header when behind localtunnel / reverse proxy
-    const xf = req?.headers?.['x-forwarded-for'];
-    if (xf && typeof xf === 'string') {
-        const first = xf.split(',')[0].trim();
-        const n = normalizeIp(first);
-        if (n) return n;
+    // Cloudflare provides real client IP in CF-Connecting-IP header (most reliable)
+    // Check both lowercase and original case (headers can vary)
+    const cfIp = req?.headers?.['cf-connecting-ip'] || req?.headers?.['CF-Connecting-IP'];
+    if (cfIp && typeof cfIp === 'string') {
+        const n = normalizeIp(cfIp.trim());
+        if (n) {
+            return n; // Trust Cloudflare header - it contains the real client IP
+        }
     }
+    // Fallback to X-Forwarded-For (may contain multiple IPs, take first)
+    const xf = req?.headers?.['x-forwarded-for'] || req?.headers?.['X-Forwarded-For'];
+    if (xf && typeof xf === 'string') {
+        // X-Forwarded-For format: "client, proxy1, proxy2"
+        // Real client is usually first, but take first non-private if available
+        const ips = xf.split(',').map(ip => ip.trim());
+        for (const ip of ips) {
+            const n = normalizeIp(ip);
+            if (n) {
+                // Prefer first IP (real client), but if it's a known proxy IP, try next
+                // Cloudflare IPs typically start with 104.x or are in specific ranges
+                if (!n.startsWith('104.') && !n.startsWith('172.64.') && !n.startsWith('172.65.')) {
+                    return n;
+                }
+            }
+        }
+        // If all look like proxies, return first one anyway
+        if (ips.length > 0) {
+            const n = normalizeIp(ips[0]);
+            if (n) return n;
+        }
+    }
+    // Last resort: direct connection IP (will be Cloudflare's IP if behind tunnel)
     const raw = req?.socket?.remoteAddress || null;
-    return normalizeIp(raw);
+    const normalized = normalizeIp(raw);
+    
+    // Log warning if we're falling back to proxy IP (indicates headers not being passed)
+    if (normalized && (normalized.startsWith('104.') || normalized.startsWith('172.64.') || normalized.startsWith('172.65.'))) {
+        console.warn('Warning: Using Cloudflare proxy IP instead of real client IP. Headers not available:', {
+            'cf-connecting-ip': req?.headers?.['cf-connecting-ip'] || req?.headers?.['CF-Connecting-IP'] || 'missing',
+            'x-forwarded-for': req?.headers?.['x-forwarded-for'] || req?.headers?.['X-Forwarded-For'] || 'missing',
+            'all-headers': Object.keys(req?.headers || {}).filter(k => k.toLowerCase().includes('ip') || k.toLowerCase().includes('forward'))
+        });
+    }
+    return normalized;
 }
 
 function initFeedbackLoggingForCycle() {
@@ -271,6 +309,8 @@ let currentSettings = {
     showJoinCode: false,
     showMobileLink: false,
     disableChatHistory: true,
+    // Hide IP: when true, use Cloudflare URLs; when false, use local URLs
+    hideIp: false,
     // Emoji shortcut shown on mobile + admin pages
     customEmoji: '⭐',
     // When true, emoji buttons send directly; when false, they insert into text box
@@ -341,11 +381,118 @@ function toggleMode() {
     console.log(`Mode: ${isPassive ? 'Passive' : 'Active'}`);
 }
 
+// Generate join page HTML (shown when no session code provided)
+function generateJoinPageHtml() {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Join Chat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg: #000; --accent: #8a8a8a; --text: #e8e8e8; --text-dim: #9a9a9a; --border: rgba(255,255,255,0.18); }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: 'Outfit', sans-serif; color: var(--text); }
+    .container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100%; padding: 24px; text-align: center; }
+    h1 { font: 600 24px 'JetBrains Mono', monospace; color: var(--accent); margin: 0 0 12px 0; }
+    p { color: var(--text-dim); margin: 0 0 32px 0; font-size: 14px; }
+    .form-group { width: 100%; max-width: 280px; margin-bottom: 20px; }
+    label { display: block; font: 500 11px 'JetBrains Mono', monospace; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; text-align: left; }
+    input { width: 100%; padding: 16px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font: 600 20px 'JetBrains Mono', monospace; text-align: center; text-transform: uppercase; letter-spacing: 4px; outline: none; }
+    input:focus { border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.05); }
+    input::placeholder { color: var(--text-dim); letter-spacing: 2px; font-size: 14px; }
+    .btn { width: 100%; max-width: 280px; padding: 16px; border: 1px solid var(--border); border-radius: 10px; background: transparent; color: var(--text); font: 600 16px 'Outfit', sans-serif; cursor: pointer; }
+    .btn:active { transform: scale(0.98); }
+    .error { color: #b24b57; font-size: 13px; margin-top: 16px; display: none; }
+    .error.visible { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Join Chat</h1>
+    <p>Enter the session code to join</p>
+    <div class="form-group">
+      <label>Session Code</label>
+      <input type="text" id="code-input" placeholder="ABC123" maxlength="6" autocomplete="off" autocapitalize="characters" autofocus>
+    </div>
+    <button class="btn" id="join-btn">Join Session</button>
+    <div class="error" id="error-msg">Invalid session code</div>
+  </div>
+  <script>
+    const input = document.getElementById('code-input');
+    const btn = document.getElementById('join-btn');
+    const error = document.getElementById('error-msg');
+    input.addEventListener('input', () => { input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); error.classList.remove('visible'); });
+    function join() {
+      const code = input.value.trim();
+      if (code.length < 4) { error.textContent = 'Please enter a valid session code'; error.classList.add('visible'); return; }
+      window.location.href = '/?s=' + encodeURIComponent(code);
+    }
+    btn.onclick = join;
+    input.onkeypress = (e) => { if (e.key === 'Enter') join(); };
+  </script>
+</body>
+</html>`;
+}
+
+// Generate session not found page HTML
+function generateSessionNotFoundHtml() {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Session Not Found</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg: #000; --accent: #8a8a8a; --text: #e8e8e8; --text-dim: #9a9a9a; --border: rgba(255,255,255,0.18); --warning: #b08a46; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: 'Outfit', sans-serif; color: var(--text); }
+    .container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100%; padding: 24px; text-align: center; }
+    .icon { font-size: 48px; margin-bottom: 20px; }
+    h1 { font: 600 20px 'JetBrains Mono', monospace; color: var(--warning); margin: 0 0 12px 0; }
+    p { color: var(--text-dim); margin: 0 0 32px 0; font-size: 14px; line-height: 1.6; max-width: 300px; }
+    .btn { padding: 14px 28px; border: 1px solid var(--border); border-radius: 10px; background: transparent; color: var(--text); font: 500 14px 'Outfit', sans-serif; cursor: pointer; text-decoration: none; }
+    .btn:active { transform: scale(0.98); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">🔒</div>
+    <h1>Session Not Found</h1>
+    <p>This session code is invalid or the event has ended. Please check your code or ask the host for a new link.</p>
+    <a href="/" class="btn">Enter Different Code</a>
+  </div>
+</body>
+</html>`;
+}
+
+// Parse session code from URL query string
+function getSessionCodeFromUrl(urlString) {
+    try {
+        // Handle URLs that might not have a host
+        const url = new URL(urlString, 'http://localhost');
+        return url.searchParams.get('s') || null;
+    } catch (e) {
+        return null;
+    }
+}
+
 // Create HTTP server to serve mobile app
 function createHttpServer() {
     httpServer = http.createServer((req, res) => {
+        // Parse URL and query params
+        const parsedUrl = new URL(req.url, `http://localhost:${WS_PORT + 1}`);
+        const pathname = parsedUrl.pathname;
+        const providedCode = parsedUrl.searchParams.get('s');
+
         // Feedback submission endpoint (same origin as mobile page)
-        if (req.url === '/feedback') {
+        if (pathname === '/feedback') {
             if (req.method !== 'POST') {
                 res.writeHead(405, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ ok: false, error: 'method_not_allowed' }));
@@ -426,28 +573,147 @@ function createHttpServer() {
             return;
         }
 
-        // Serve mobile app
-        if (req.url === '/' || req.url === '/index.html') {
+        // Serve mobile app (requires valid session code)
+        if (pathname === '/' || pathname === '/index.html') {
+            // No session code provided - show join page
+            if (!providedCode) {
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.end(generateJoinPageHtml());
+                return;
+            }
+
+            // Wrong session code - show error page
+            if (providedCode.toUpperCase() !== sessionCode) {
+                res.writeHead(403, { 'Content-Type': 'text/html' });
+                res.end(generateSessionNotFoundHtml());
+                return;
+            }
+
+            // Valid session code - serve mobile app with injected WebSocket URL
             const mobilePath = path.join(__dirname, 'mobile', 'index.html');
-            fs.readFile(mobilePath, (err, data) => {
+            fs.readFile(mobilePath, 'utf8', (err, data) => {
                 if (err) {
                     res.writeHead(404);
                     res.end('Mobile app not found');
                     return;
                 }
+                // Detect if request is coming through Cloudflare tunnel or locally
+                const isCloudflareRequest = req.headers['cf-connecting-ip'] || 
+                                          req.headers['CF-Connecting-IP'] ||
+                                          (req.headers.host && req.headers.host.includes('trycloudflare.com'));
+                
+                // Inject appropriate WebSocket URL based on request source
+                let html = data;
+                const localIP = getLocalIP();
+                let wsUrlHost = null;
+                let forceLocal = false;
+                
+                if (isCloudflareRequest && wsTunnel) {
+                    // Cloudflare request - use Cloudflare WebSocket tunnel
+                    wsUrlHost = wsTunnel.url.replace(/^wss?:\/\//, '').replace(/\/$/, '');
+                } else {
+                    // Local request - ALWAYS use local WebSocket server (force override)
+                    wsUrlHost = `${localIP}:${WS_PORT}`;
+                    forceLocal = true;
+                }
+                
+                if (wsUrlHost) {
+                    // Inject as meta tag and inline script that runs immediately
+                    const injectMeta = `<meta name="default-ws-url" content="${wsUrlHost}">`;
+                    const injectScript = `<script>
+                        (function() {
+                            const defaultWsUrl = '${wsUrlHost}';
+                            const isLocalRequest = ${forceLocal ? 'true' : 'false'};
+                            if (defaultWsUrl) {
+                                // For local requests, ALWAYS override localStorage to ensure local WebSocket is used
+                                if (isLocalRequest) {
+                                    localStorage.setItem('livechat_server', defaultWsUrl);
+                                    window.__defaultWsUrl = defaultWsUrl;
+                                } else {
+                                    // For Cloudflare requests, only update if needed
+                                    const existing = localStorage.getItem('livechat_server') || '';
+                                    const shouldUpdate = !existing || 
+                                        existing.includes('10.') || 
+                                        existing.includes('192.168.') || 
+                                        existing.includes('172.') || 
+                                        existing === window.location.hostname + ':8765' ||
+                                        existing.includes('localhost');
+                                    if (shouldUpdate) {
+                                        localStorage.setItem('livechat_server', defaultWsUrl);
+                                        window.__defaultWsUrl = defaultWsUrl;
+                                    }
+                                }
+                            }
+                        })();
+                    </script>`;
+                    // Inject in head, before any other scripts
+                    html = html.replace('<head>', '<head>' + injectMeta + injectScript);
+                }
                 res.writeHead(200, { 'Content-Type': 'text/html' });
-                res.end(data);
+                res.end(html);
             });
-        } else if (req.url === '/admin' || req.url === '/admin.html') {
+        } else if (pathname === '/admin' || pathname === '/admin.html') {
             const adminPath = path.join(__dirname, 'mobile', 'admin.html');
-            fs.readFile(adminPath, (err, data) => {
+            fs.readFile(adminPath, 'utf8', (err, data) => {
                 if (err) {
                     res.writeHead(404);
                     res.end('Admin page not found');
                     return;
                 }
+                // Detect if request is coming through Cloudflare tunnel or locally
+                const isCloudflareRequest = req.headers['cf-connecting-ip'] || 
+                                          req.headers['CF-Connecting-IP'] ||
+                                          (req.headers.host && req.headers.host.includes('trycloudflare.com'));
+                
+                // Inject appropriate WebSocket URL based on request source
+                let html = data;
+                const localIP = getLocalIP();
+                let wsUrlHost = null;
+                let forceLocal = false;
+                
+                if (isCloudflareRequest && wsTunnel) {
+                    // Cloudflare request - use Cloudflare WebSocket tunnel
+                    wsUrlHost = wsTunnel.url.replace(/^wss?:\/\//, '').replace(/\/$/, '');
+                } else {
+                    // Local request - ALWAYS use local WebSocket server (force override)
+                    wsUrlHost = `${localIP}:${WS_PORT}`;
+                    forceLocal = true;
+                }
+                
+                if (wsUrlHost) {
+                    // Inject as meta tag and inline script that runs immediately
+                    const injectMeta = `<meta name="default-ws-url" content="${wsUrlHost}">`;
+                    const injectScript = `<script>
+                        (function() {
+                            const defaultWsUrl = '${wsUrlHost}';
+                            const isLocalRequest = ${forceLocal ? 'true' : 'false'};
+                            if (defaultWsUrl) {
+                                // For local requests, ALWAYS override localStorage to ensure local WebSocket is used
+                                if (isLocalRequest) {
+                                    localStorage.setItem('livechat_server', defaultWsUrl);
+                                    window.__defaultWsUrl = defaultWsUrl;
+                                } else {
+                                    // For Cloudflare requests, only update if needed
+                                    const existing = localStorage.getItem('livechat_server') || '';
+                                    const shouldUpdate = !existing || 
+                                        existing.includes('10.') || 
+                                        existing.includes('192.168.') || 
+                                        existing.includes('172.') || 
+                                        existing === window.location.hostname + ':8765' ||
+                                        existing.includes('localhost');
+                                    if (shouldUpdate) {
+                                        localStorage.setItem('livechat_server', defaultWsUrl);
+                                        window.__defaultWsUrl = defaultWsUrl;
+                                    }
+                                }
+                            }
+                        })();
+                    </script>`;
+                    // Inject in head, before any other scripts
+                    html = html.replace('<head>', '<head>' + injectMeta + injectScript);
+                }
                 res.writeHead(200, { 'Content-Type': 'text/html' });
-                res.end(data);
+                res.end(html);
             });
         } else {
             res.writeHead(404);
@@ -492,29 +758,89 @@ function createWebSocketServer() {
     wss = new WebSocket.Server({ port: WS_PORT });
     
     wss.on('connection', (ws, req) => {
-        const clientIpRaw = req?.socket?.remoteAddress || null;
-        const clientIp = normalizeIp(clientIpRaw);
+        // Extract real client IP from Cloudflare headers (for tunnel connections)
+        const clientIp = getClientIpFromReq(req);
         console.log('Client connected', clientIp ? `(${clientIp})` : '');
         ws.isAdmin = false;
         ws.clientIp = clientIp;
+        ws.sessionValidated = false; // Must validate session code before chatting
         
-        // Send session code to newly connected client
-        ws.send(JSON.stringify({ type: 'session', code: sessionCode }));
-        // Send latest settings immediately (so emoji shortcuts / chat history mode are correct on first load)
-        try {
-            const localIP = getLocalIP();
-            ws.send(JSON.stringify({
-                type: 'settings-sync',
-                settings: currentSettings,
-                mobileUrl: `http://${localIP}:${WS_PORT + 1}`
-            }));
-        } catch (e) {
-            // Non-fatal; client will still receive future syncs.
-        }
+        // Timeout for unvalidated connections (10 seconds)
+        const validationTimeout = setTimeout(() => {
+            if (!ws.sessionValidated && ws.readyState === WebSocket.OPEN) {
+                console.log('Client disconnected (validation timeout)', clientIp ? `(${clientIp})` : '');
+                try {
+                    ws.close(1008, 'Session validation timeout');
+                } catch (_) {}
+            }
+        }, 10000);
         
         ws.on('message', (data) => {
             try {
                 const msg = JSON.parse(data.toString());
+                
+                // Session join request - must be validated before other actions
+                if (msg.type === 'join') {
+                    const providedCode = String(msg.sessionCode || '').toUpperCase().trim();
+                    if (providedCode === sessionCode) {
+                        ws.sessionValidated = true;
+                        ws.send(JSON.stringify({ type: 'join-result', success: true, code: sessionCode }));
+                        // Send settings after successful join
+                        try {
+                            const urls = getUrls();
+                            ws.send(JSON.stringify({
+                                type: 'settings-sync',
+                                settings: currentSettings,
+                                mobileUrl: urls.mobileUrl,
+                                wsUrl: urls.wsUrl
+                            }));
+                        } catch (e) {
+                            // Non-fatal
+                        }
+                        clearTimeout(validationTimeout); // Clear timeout on successful join
+                        console.log('Client joined session', clientIp ? `(${clientIp})` : '');
+                    } else {
+                        ws.send(JSON.stringify({ type: 'join-result', success: false, error: 'invalid_session' }));
+                        // Close the connection after failed join
+                        clearTimeout(validationTimeout);
+                        setTimeout(() => {
+                            try { ws.close(1008, 'Invalid session code'); } catch (_) {}
+                        }, 100);
+                    }
+                    return;
+                }
+
+                // Admin authentication (doesn't require session validation - uses password)
+                if (msg.type === 'admin-auth') {
+                    const success = msg.password === adminPassword;
+                    if (success) {
+                        ws.isAdmin = true;
+                        ws.sessionValidated = true; // Admins are auto-validated
+                        adminClients.add(ws);
+                        clearTimeout(validationTimeout); // Clear timeout on successful auth
+                        console.log('Admin authenticated');
+                    }
+                    ws.send(JSON.stringify({ 
+                        type: 'admin-auth-result', 
+                        success,
+                        settings: success ? currentSettings : null,
+                        blockedIps: success ? Array.from(blockedIps) : null
+                    }));
+                    if (!success) {
+                        // Close connection after failed admin auth
+                        clearTimeout(validationTimeout);
+                        setTimeout(() => {
+                            try { ws.close(1008, 'Invalid admin password'); } catch (_) {}
+                        }, 100);
+                    }
+                    return;
+                }
+
+                // All other message types require session validation
+                if (!ws.sessionValidated) {
+                    ws.send(JSON.stringify({ type: 'error', error: 'session_not_validated' }));
+                    return;
+                }
                 
                 // Regular message
                 if (msg.type === 'message' && msg.user && msg.text) {
@@ -597,21 +923,6 @@ function createWebSocketServer() {
                     });
                 }
                 
-                // Admin authentication
-                else if (msg.type === 'admin-auth') {
-                    const success = msg.password === adminPassword;
-                    if (success) {
-                        ws.isAdmin = true;
-                        adminClients.add(ws);
-                        console.log('Admin authenticated');
-                    }
-                    ws.send(JSON.stringify({ 
-                        type: 'admin-auth-result', 
-                        success,
-                        settings: success ? currentSettings : null,
-                        blockedIps: success ? Array.from(blockedIps) : null
-                    }));
-                }
                 
                 // Admin: delete message
                 else if (msg.type === 'admin-delete-msg' && ws.isAdmin) {
@@ -665,6 +976,7 @@ function createWebSocketServer() {
                     if (msg.showJoinCode !== undefined) currentSettings.showJoinCode = msg.showJoinCode;
                     if (msg.showMobileLink !== undefined) currentSettings.showMobileLink = msg.showMobileLink;
                     if (msg.disableChatHistory !== undefined) currentSettings.disableChatHistory = msg.disableChatHistory;
+                    if (msg.hideIp !== undefined) currentSettings.hideIp = !!msg.hideIp;
                     if (msg.customEmoji !== undefined) {
                         const next = String(msg.customEmoji || '').trim().slice(0, 8);
                         currentSettings.customEmoji = next || '⭐';
@@ -690,14 +1002,15 @@ function createWebSocketServer() {
                     }
                     
                     // Broadcast settings to ALL clients (for mobile link display)
-                    const localIP = getLocalIP();
+                    const urls = getUrls();
                     wss.clients.forEach(client => {
                         if (client.readyState === WebSocket.OPEN) {
                             try {
                                 client.send(JSON.stringify({ 
                                     type: 'settings-sync', 
                                     settings: currentSettings,
-                                    mobileUrl: `http://${localIP}:${WS_PORT + 1}`
+                                    mobileUrl: urls.mobileUrl,
+                                    wsUrl: urls.wsUrl
                                 }));
                             } catch (err) {
                                 console.error('Error sending settings to client:', err);
@@ -730,8 +1043,12 @@ function createWebSocketServer() {
         });
         
         ws.on('close', () => {
+            clearTimeout(validationTimeout);
             adminClients.delete(ws);
-            console.log('Client disconnected');
+            // Only log disconnections for validated clients to reduce noise
+            if (ws.sessionValidated) {
+                console.log('Client disconnected', clientIp ? `(${clientIp})` : '');
+            }
         });
         
         ws.on('error', (err) => {
@@ -757,35 +1074,137 @@ function getLocalIP() {
     return 'localhost';
 }
 
-// Create secure tunnels for internet access
+// Get URLs based on hideIp setting
+function getUrls() {
+    const localIP = getLocalIP();
+    const useCloudflare = currentSettings.hideIp && httpTunnel && wsTunnel;
+    
+    return {
+        mobileUrl: useCloudflare ? `${httpTunnel.url}?s=${sessionCode}` : `http://${localIP}:${WS_PORT + 1}?s=${sessionCode}`,
+        adminUrl: useCloudflare ? `${httpTunnel.url}/admin?s=${sessionCode}` : `http://${localIP}:${WS_PORT + 1}/admin?s=${sessionCode}`,
+        wsUrl: useCloudflare ? wsTunnel.url : `ws://${localIP}:${WS_PORT}`
+    };
+}
+
+// Start Cloudflare quick tunnel process and parse URL from output
+function startCloudflareTunnel(port, tunnelType) {
+    return new Promise((resolve, reject) => {
+        const process = spawn('cloudflared', ['tunnel', '--url', `http://localhost:${port}`], {
+            stdio: ['ignore', 'pipe', 'pipe']
+        });
+
+        let output = '';
+        let errorOutput = '';
+        let resolved = false;
+        let timeoutId = null;
+
+        const checkForUrl = (text) => {
+            // Look for URL in output: "https://random-subdomain.trycloudflare.com"
+            const urlMatch = text.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/g);
+            if (urlMatch && urlMatch.length > 0 && !resolved) {
+                resolved = true;
+                const url = urlMatch[0];
+                console.log(`Cloudflare ${tunnelType} tunnel: ${url}`);
+                if (timeoutId) clearTimeout(timeoutId);
+                resolve({ process, url });
+            }
+        };
+
+        process.stdout.on('data', (data) => {
+            const text = data.toString();
+            output += text;
+            checkForUrl(text);
+        });
+
+        process.stderr.on('data', (data) => {
+            const text = data.toString();
+            errorOutput += text;
+            // Cloudflare often outputs the URL to stderr
+            checkForUrl(text);
+        });
+
+        process.on('error', (err) => {
+            if (resolved) return;
+            if (timeoutId) clearTimeout(timeoutId);
+            if (err.code === 'ENOENT') {
+                reject(new Error('cloudflared not found. Please install it: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/'));
+            } else {
+                reject(err);
+            }
+        });
+
+        process.on('exit', (code) => {
+            if (resolved) return;
+            if (timeoutId) clearTimeout(timeoutId);
+            if (code !== 0 && code !== null) {
+                reject(new Error(`cloudflared exited with code ${code}: ${errorOutput || output}`));
+            }
+        });
+
+        // Timeout after 15 seconds if no URL found
+        timeoutId = setTimeout(() => {
+            if (!resolved) {
+                resolved = true;
+                process.kill();
+                reject(new Error(`Timeout waiting for ${tunnelType} tunnel URL`));
+            }
+        }, 15000);
+    });
+}
+
+// Broadcast tunnel URLs to all connected clients
+function broadcastTunnelUrls() {
+    if (!wss) return;
+    const urls = getUrls();
+    
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN && client.sessionValidated) {
+            try {
+                client.send(JSON.stringify({ 
+                    type: 'settings-sync', 
+                    settings: currentSettings,
+                    mobileUrl: urls.mobileUrl,
+                    wsUrl: urls.wsUrl
+                }));
+            } catch (err) {
+                console.error('Error broadcasting tunnel URLs to client:', err);
+            }
+        }
+    });
+}
+
+// Create secure tunnels for internet access using Cloudflare quick tunnels
 async function createTunnels() {
     try {
-        // Create tunnel for HTTP server (mobile/admin pages)
-        httpTunnel = await localtunnel({ port: WS_PORT + 1 });
-        console.log(`Secure Mobile URL: ${httpTunnel.url}`);
-        
-        httpTunnel.on('close', () => {
-            console.log('HTTP tunnel closed');
-            httpTunnel = null;
-        });
-        
-        httpTunnel.on('error', (err) => {
-            console.error('HTTP tunnel error:', err);
-        });
-        
-        // Create tunnel for WebSocket server
-        wsTunnel = await localtunnel({ port: WS_PORT });
-        console.log(`Secure WebSocket: ${wsTunnel.url.replace('https://', 'wss://')}`);
-        
-        wsTunnel.on('close', () => {
-            console.log('WebSocket tunnel closed');
+        // Create WebSocket tunnel FIRST (needed for HTTP tunnel pages)
+        try {
+            const wsResult = await startCloudflareTunnel(WS_PORT, 'WebSocket');
+            wsTunnelProcess = wsResult.process;
+            wsTunnel = { url: wsResult.url.replace('https://', 'wss://') };
+            console.log(`Cloudflare WebSocket: ${wsTunnel.url}`);
+        } catch (err) {
+            console.error('Failed to create WebSocket tunnel:', err.message);
             wsTunnel = null;
-        });
-        
-        wsTunnel.on('error', (err) => {
-            console.error('WebSocket tunnel error:', err);
-        });
-        
+        }
+
+        // Create tunnel for HTTP server (mobile/admin pages) AFTER WebSocket tunnel
+        try {
+            const httpResult = await startCloudflareTunnel(WS_PORT + 1, 'HTTP');
+            httpTunnelProcess = httpResult.process;
+            httpTunnel = { url: httpResult.url };
+            console.log(`Cloudflare Mobile URL: ${httpTunnel.url}?s=${sessionCode}`);
+            console.log(`Cloudflare Admin URL: ${httpTunnel.url}/admin?s=${sessionCode}`);
+        } catch (err) {
+            console.error('Failed to create HTTP tunnel:', err.message);
+            httpTunnel = null;
+        }
+
+        if (!httpTunnel && !wsTunnel) {
+            console.log('Falling back to local network only');
+        } else {
+            // Broadcast updated tunnel URLs to all connected clients
+            broadcastTunnelUrls();
+        }
     } catch (err) {
         console.error('Failed to create tunnels:', err.message);
         console.log('Falling back to local network only');
@@ -813,16 +1232,16 @@ app.whenReady().then(async () => {
     console.log('Overlay started. Press Ctrl+Shift+O or F9 to toggle mode.');
     console.log(`Session Code: ${sessionCode}`);
     console.log(`Admin Password: ${adminPassword}`);
-    console.log('--- Local Network URLs ---');
-    console.log(`Mobile app: http://${localIP}:${WS_PORT + 1}`);
-    console.log(`Admin page: http://${localIP}:${WS_PORT + 1}/admin`);
-    console.log(`WebSocket: ws://${localIP}:${WS_PORT}`);
     if (httpTunnel && wsTunnel) {
-        console.log('--- Secure Internet URLs ---');
-        console.log(`Mobile app: ${httpTunnel.url}`);
-        console.log(`Admin page: ${httpTunnel.url}/admin`);
-        console.log(`WebSocket: ${wsTunnel.url.replace('https://', 'wss://')}`);
+        console.log('--- Cloudflare Tunnel URLs (Primary) ---');
+        console.log(`Mobile app: ${httpTunnel.url}?s=${sessionCode}`);
+        console.log(`Admin page: ${httpTunnel.url}/admin?s=${sessionCode}`);
+        console.log(`WebSocket: ${wsTunnel.url}`);
     }
+    console.log('--- Local Network URLs (Fallback) ---');
+    console.log(`Mobile app: http://${localIP}:${WS_PORT + 1}?s=${sessionCode}`);
+    console.log(`Admin page: http://${localIP}:${WS_PORT + 1}/admin?s=${sessionCode}`);
+    console.log(`WebSocket: ws://${localIP}:${WS_PORT}`);
 });
 
 // IPC handlers
@@ -833,20 +1252,20 @@ ipcMain.on('enter-passive', () => {
 
 ipcMain.handle('get-session-info', () => {
     const localIP = getLocalIP();
+    const urls = getUrls();
+    
     const info = {
         code: sessionCode,
         adminPassword: adminPassword,
-        wsUrl: `ws://${localIP}:${WS_PORT}`,
-        mobileUrl: `http://${localIP}:${WS_PORT + 1}`,
-        adminUrl: `http://${localIP}:${WS_PORT + 1}/admin`
+        wsUrl: urls.wsUrl,
+        mobileUrl: urls.mobileUrl,
+        adminUrl: urls.adminUrl
     };
     
-    // Add secure tunnel URLs if available
-    if (httpTunnel && wsTunnel) {
-        info.secureMobileUrl = httpTunnel.url;
-        info.secureAdminUrl = `${httpTunnel.url}/admin`;
-        info.secureWsUrl = wsTunnel.url.replace('https://', 'wss://');
-    }
+    // Keep local URLs as fallback
+    info.localWsUrl = `ws://${localIP}:${WS_PORT}`;
+    info.localMobileUrl = `http://${localIP}:${WS_PORT + 1}?s=${sessionCode}`;
+    info.localAdminUrl = `http://${localIP}:${WS_PORT + 1}/admin?s=${sessionCode}`;
     
     return info;
 });
@@ -858,6 +1277,7 @@ ipcMain.on('settings-changed', (_, settings) => {
     if (settings.showJoinCode !== undefined) currentSettings.showJoinCode = settings.showJoinCode;
     if (settings.showMobileLink !== undefined) currentSettings.showMobileLink = settings.showMobileLink;
     if (settings.disableChatHistory !== undefined) currentSettings.disableChatHistory = settings.disableChatHistory;
+    if (settings.hideIp !== undefined) currentSettings.hideIp = !!settings.hideIp;
     if (settings.customEmoji !== undefined) {
         const next = String(settings.customEmoji || '').trim().slice(0, 8);
         currentSettings.customEmoji = next || '⭐';
@@ -877,14 +1297,15 @@ ipcMain.on('settings-changed', (_, settings) => {
     }
     
     // Broadcast settings to ALL clients
-    const localIP = getLocalIP();
+    const urls = getUrls();
     wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
             try {
                 client.send(JSON.stringify({ 
                     type: 'settings-sync', 
                     settings: currentSettings,
-                    mobileUrl: `http://${localIP}:${WS_PORT + 1}`
+                    mobileUrl: urls.mobileUrl,
+                    wsUrl: urls.wsUrl
                 }));
             } catch (err) {
                 console.error('Error sending settings to client:', err);
@@ -938,15 +1359,25 @@ function cleanup() {
         httpServer = null;
     }
     
-    // Close tunnels
-    if (httpTunnel) {
-        httpTunnel.close();
-        httpTunnel = null;
+    // Close Cloudflare tunnels
+    if (httpTunnelProcess) {
+        try {
+            httpTunnelProcess.kill();
+        } catch (e) {
+            console.error('Error killing HTTP tunnel process:', e);
+        }
+        httpTunnelProcess = null;
     }
-    if (wsTunnel) {
-        wsTunnel.close();
-        wsTunnel = null;
+    if (wsTunnelProcess) {
+        try {
+            wsTunnelProcess.kill();
+        } catch (e) {
+            console.error('Error killing WebSocket tunnel process:', e);
+        }
+        wsTunnelProcess = null;
     }
+    httpTunnel = null;
+    wsTunnel = null;
     
     // Clear admin clients
     adminClients.clear();
