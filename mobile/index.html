@@ -69,7 +69,7 @@
     header {
       padding: 20px;
       text-align: center;
-      background: rgba(255, 255, 255, 0.02);
+      background: var(--bg-solid);
       border-bottom: 1px solid var(--border);
     }
 
@@ -449,10 +449,6 @@
     <!-- Connection Panel -->
     <div id="connect-panel">
       <div class="form-group">
-        <label>Server Address</label>
-        <input type="text" id="server-input" placeholder="192.168.1.100:8765" autocomplete="off" autocapitalize="off">
-      </div>
-      <div class="form-group">
         <label>Your Name</label>
         <input type="text" id="name-input" placeholder="Enter your display name" autocomplete="off">
       </div>
@@ -511,7 +507,6 @@
     // Elements
     const connectPanel = $('connect-panel');
     const chatPanel = $('chat-panel');
-    const serverInput = $('server-input');
     const nameInput = $('name-input');
     const connectBtn = $('connect-btn');
     const connectError = $('connect-error');
@@ -534,6 +529,7 @@
     let sessionCode = '';
     let urlSessionCode = ''; // Session code from URL
     let disableChatHistory = true; // Default: only show own messages
+    let serverAddress = ''; // Hidden server address (not shown to user)
     
     // Extract session code from URL query parameter
     function getSessionCodeFromUrl() {
@@ -578,7 +574,7 @@
     
     // Check if default WebSocket URL was injected
     if (window.__defaultWsUrl) {
-      serverInput.value = window.__defaultWsUrl;
+      serverAddress = window.__defaultWsUrl;
       // For local URLs, always override localStorage to ensure local WebSocket is used
       if (isLocalUrl) {
         localStorage.setItem('livechat_server', window.__defaultWsUrl);
@@ -588,27 +584,24 @@
     } else if (isLocalUrl) {
       // Force local WebSocket for local URLs, regardless of localStorage
       const localWsUrl = window.location.hostname + ':8765';
-      serverInput.value = localWsUrl;
+      serverAddress = localWsUrl;
       localStorage.setItem('livechat_server', localWsUrl);
     } else {
-      serverInput.value = localStorage.getItem('livechat_server') || '';
+      serverAddress = localStorage.getItem('livechat_server') || '';
     }
     nameInput.value = localStorage.getItem('livechat_name') || '';
 
     // Auto-detect server from URL if accessed from same network
-    if (!serverInput.value && window.location.hostname !== 'localhost') {
+    if (!serverAddress && window.location.hostname !== 'localhost') {
       if (isSecure) {
         // For HTTPS tunnel, check meta tag for default WebSocket URL
         const metaTag = document.querySelector('meta[name="default-ws-url"]');
         if (metaTag && metaTag.content) {
-          serverInput.value = metaTag.content;
+          serverAddress = metaTag.content;
           localStorage.setItem('livechat_server', metaTag.content);
-        } else {
-          // Leave empty - user needs to enter WSS tunnel URL
-          serverInput.placeholder = 'Enter WSS tunnel URL';
         }
       } else {
-        serverInput.value = window.location.hostname + ':8765';
+        serverAddress = window.location.hostname + ':8765';
       }
     }
 
@@ -626,11 +619,11 @@
     }
 
     function connect() {
-      const server = serverInput.value.trim();
+      const server = serverAddress.trim();
       const name = nameInput.value.trim();
 
       if (!server) {
-        showError('Please enter server address');
+        showError('Server address not configured');
         return;
       }
       if (!name) {
@@ -791,7 +784,7 @@
           }
           // Autofill WebSocket URL if provided and field is empty or contains local network address
           if (data.wsUrl) {
-            const currentValue = serverInput.value.trim();
+            const currentValue = serverAddress.trim();
             // Check if current value is a local network address or empty
             const isLocalNetwork = !currentValue || /^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|localhost|127\.|.*:8765$)/.test(currentValue);
             // Prefer Cloudflare URLs over local addresses
@@ -806,8 +799,8 @@
               extractedUrl = extractedUrl.replace(/\/$/, '');
               
               if (extractedUrl) {
-                serverInput.value = extractedUrl;
-                localStorage.setItem('livechat_server', serverInput.value);
+                serverAddress = extractedUrl;
+                localStorage.setItem('livechat_server', serverAddress);
                 console.log('Autofilled WebSocket URL:', extractedUrl);
               }
             }
@@ -891,7 +884,7 @@
     function attemptReconnect() {
       if (ws && ws.readyState === WebSocket.OPEN) return; // Already connected
       
-      const server = lastServerAddress || serverInput.value.trim();
+      const server = lastServerAddress || serverAddress.trim();
       if (!server || !username) {
         // Don't try to reconnect if we don't have a valid server address
         return;
@@ -1007,7 +1000,7 @@
     }
 
     function getFeedbackSubmittedKey() {
-      const server = (localStorage.getItem('livechat_server') || serverInput.value || '').trim();
+      const server = (localStorage.getItem('livechat_server') || serverAddress || '').trim();
       return `livechat_feedback_submitted:${server}:cycle:${feedbackCycleId || 0}`;
     }
 
@@ -1254,10 +1247,6 @@
 
     msgInput.onkeypress = (e) => {
       if (e.key === 'Enter') sendMessage();
-    };
-
-    serverInput.onkeypress = (e) => {
-      if (e.key === 'Enter') nameInput.focus();
     };
 
     nameInput.onkeypress = (e) => {
