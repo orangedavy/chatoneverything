@@ -1,0 +1,51 @@
+{
+  "name": "chatoneverything",
+  "version": "1.0.0",
+  "description": "A transparent overlay for Linux with click-through support and global hotkeys",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron . --enable-transparent-visuals --disable-gpu --no-sandbox",
+    "build": "electron-builder",
+    "build:linux": "electron-builder --linux",
+    "build:win": "electron-builder --win"
+  },
+  "keywords": [
+    "electron",
+    "overlay",
+    "linux",
+    "transparent"
+  ],
+  "author": {
+    "name": "Sumedh",
+    "email": "sumedh88@outlook.com"
+  },
+  "homepage": "https://github.com/sumsupee/chat-on-everything",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.sumedh.chatoneverything",
+    "productName": "chat-on-everything",
+    "icon": "assets/title_plain.png",
+    "files": [
+      "main.js",
+      "index.html",
+      "mobile/**/*",
+      "assets/**/*"
+    ],
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Utility",
+      "icon": "assets/title_plain.png"
+    },
+    "win": {
+      "target": ["nsis", "portable"],
+      "icon": "assets/title_plain.png"
+    }
+  }
+}
