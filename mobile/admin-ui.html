@@ -1,0 +1,175 @@
+<div class="tabs">
+    <button class="tab active" data-tab="messages">Messages</button>
+    <button class="tab" data-tab="settings">Settings</button>
+</div>
+
+<!-- Messages Tab -->
+<div class="tab-content active" id="tab-messages">
+    <div id="messages-list">
+        <div class="empty-state">No messages yet</div>
+    </div>
+</div>
+
+<!-- Settings Tab -->
+<div class="tab-content" id="tab-settings">
+    <div class="toggle-row">
+        <label>Hide IP</label>
+        <div class="toggle">
+            <input type="checkbox" id="hideIp">
+            <span class="toggle-slider"></span>
+        </div>
+    </div>
+
+    <div class="setting-group">
+        <label>Max Messages</label>
+        <div class="setting-row">
+            <input type="range" id="maxMsgSlider" min="2" max="10" value="5">
+            <span class="setting-value" id="maxMsgValue">5</span>
+        </div>
+    </div>
+
+    <div class="setting-group">
+        <label>Font Size</label>
+        <div class="setting-row">
+            <input type="range" id="fontSizeSlider" min="10" max="48" value="13">
+            <span class="setting-value" id="fontSizeValue">13</span>
+        </div>
+    </div>
+
+    <div class="toggle-row">
+        <label>Show Join Code</label>
+        <div class="toggle">
+            <input type="checkbox" id="showJoinCode">
+            <span class="toggle-slider"></span>
+        </div>
+    </div>
+
+    <div class="toggle-row">
+        <label>Show QR Code on Overlay</label>
+        <div class="toggle">
+            <input type="checkbox" id="showMobileLink">
+            <span class="toggle-slider"></span>
+        </div>
+    </div>
+
+    <div class="toggle-row">
+        <label>Disable Chat History for Others</label>
+        <div class="toggle">
+            <input type="checkbox" id="disableChatHistory" checked>
+            <span class="toggle-slider"></span>
+        </div>
+    </div>
+
+    <div class="toggle-row">
+        <label>Enable Feedback Form</label>
+        <div class="toggle">
+            <input type="checkbox" id="enableFeedbackForm">
+            <span class="toggle-slider"></span>
+        </div>
+    </div>
+
+    <div class="toggle-row">
+        <label>Emoji Direct to Send</label>
+        <div class="toggle">
+            <input type="checkbox" id="emojiDirectSend" checked>
+            <span class="toggle-slider"></span>
+        </div>
+    </div>
+
+    <div class="toggle-row">
+        <label>Slow Mode</label>
+        <div class="toggle">
+            <input type="checkbox" id="slowModeEnabled">
+            <span class="toggle-slider"></span>
+        </div>
+    </div>
+
+    <div class="setting-group" id="slowModeSecondsGroup" style="margin-top: 12px; display: none;">
+        <label>Slow Mode Delay (seconds)</label>
+        <div class="setting-row">
+            <input type="range" id="slowModeSlider" min="1" max="30" value="3">
+            <span class="setting-value" id="slowModeValue">3</span>
+        </div>
+    </div>
+
+    <div class="setting-group" style="margin-top: 18px;">
+        <label>Custom Emoji Shortcut</label>
+        <div class="setting-row">
+            <div class="emoji-preview" id="customEmojiCurrent" aria-label="Current custom emoji">⭐</div>
+            <input type="text" id="customEmojiInput" placeholder="Type emoji (blank = ⭐)" maxlength="8"
+                autocomplete="off">
+            <button class="btn" id="customEmojiSetBtn" type="button">Set</button>
+        </div>
+    </div>
+
+    <div class="setting-group" style="margin-top: 18px;">
+        <label>Blocked IP Addresses</label>
+        <div id="blocked-ips-list">
+            <div class="empty-state">No blocked IPs</div>
+        </div>
+    </div>
+
+    <!-- @Cee AI Agent Settings -->
+    <div class="setting-group" style="margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border);">
+        <label style="font-size: 12px; color: var(--accent); margin-bottom: 12px;">@Cee AI Agent</label>
+        <div class="toggle-row" style="border-bottom: none;">
+            <label>Enable @Cee Agent</label>
+            <div class="toggle">
+                <input type="checkbox" id="enableCeeAgent">
+                <span class="toggle-slider"></span>
+            </div>
+        </div>
+
+        <div id="ceeApiKeyGroup" style="margin-top: 12px; display: none;">
+            <label>API Provider</label>
+            <select id="ceeApiProvider"
+                style="width: 100%; padding: 12px 14px; border-radius: 10px; background: #0a0a0a; border: 1px solid var(--border-strong); color: var(--text); font: 14px 'Outfit', sans-serif; margin-bottom: 12px; cursor: pointer;">
+                <option value="openai">OpenAI</option>
+                <option value="gemini">Gemini</option>
+            </select>
+            <label id="ceeApiKeyLabel">OpenAI API Key</label>
+            <div id="ceeApiKeyStatusIndicator"
+                style="font-size: 12px; padding: 8px 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); margin-bottom: 8px; color: var(--danger);">
+                Not Set
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="password" id="cee-api-key" placeholder="sk-..." autocomplete="off"
+                    style="flex: 1; padding: 12px 14px; border-radius: 10px;">
+                <button class="btn" id="cee-api-key-toggle" type="button"
+                    style="width: auto; padding: 12px 16px;">Show</button>
+            </div>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 8px;">
+                Users can ask @Cee questions with screen context
+            </div>
+            <label style="margin-top: 16px;">Custom Instructions (optional)</label>
+            <textarea id="ceeSystemPrompt" rows="2" maxlength="300"
+                placeholder="e.g., be like Darth Vader, answer in 10 words only, talk like Yoda..."
+                style="width: 100%; padding: 12px 14px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-strong); color: var(--text); font: 14px 'Outfit', sans-serif; resize: vertical; min-height: 60px;"></textarea>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 6px;">
+                Customize Cee's personality or response style
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Message Input Area -->
+<div id="message-input-area">
+    <div class="username-row">
+        <label>As:</label>
+        <input type="text" id="admin-username" placeholder="Admin" autocomplete="off">
+    </div>
+    <div id="admin-emoji-bar" aria-label="Reactions">
+        <button class="emoji-btn" type="button" data-emoji="😂" aria-label="Laugh">😂</button>
+        <button class="emoji-btn" type="button" data-emoji="❤️" aria-label="Love">❤️</button>
+        <button class="emoji-btn" type="button" data-emoji="👍" aria-label="Thumbs up">👍</button>
+        <button class="emoji-btn" type="button" data-emoji="👎" aria-label="Boo">👎</button>
+        <button class="emoji-btn" type="button" data-emoji="😮" aria-label="Wow">😮</button>
+        <button class="emoji-btn" type="button" data-emoji="😢" aria-label="Cry">😢</button>
+        <button class="emoji-btn" type="button" id="admin-custom-emoji-btn" data-emoji="⭐"
+            aria-label="Custom reaction">⭐</button>
+    </div>
+    <div class="message-row">
+        <input type="text" id="admin-msg-input" placeholder="Send a message..." autocomplete="off">
+        <button id="admin-send-btn">➤</button>
+    </div>
+</div>

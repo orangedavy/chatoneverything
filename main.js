@@ -230,6 +230,8 @@ webServer.on('settings-update', (msg) => {
     });
 });
 
+webServer.on('mode-toggle', toggleMode);
+
 webServer.on('remote-control-start', () => setRemoteControlMode(true));
 webServer.on('remote-control-end', () => setRemoteControlMode(false));
 
