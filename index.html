@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;500;600&display=swap');
@@ -14,7 +15,10 @@
       --danger: #ff4757;
     }
 
-    * { box-sizing: border-box; user-select: none; }
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
 
     /* Dark mode select dropdown */
     select {
@@ -26,24 +30,33 @@
       background-position: right 10px center;
       padding-right: 30px !important;
     }
+
     select option {
       background: #1a1a2e;
       color: #f0f0f5;
       padding: 10px;
     }
-    select option:hover, select option:focus {
+
+    select option:hover,
+    select option:focus {
       background: #2a2a4e;
     }
 
-    html, body {
-      margin: 0; padding: 0; height: 100%;
-      overflow: hidden; background: transparent;
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
       font-family: 'Outfit', sans-serif;
     }
 
     #app {
-      width: 100%; height: 100%;
-      display: flex; flex-direction: column;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
       background: transparent;
       border-radius: 12px;
       border: none;
@@ -67,31 +80,74 @@
       align-items: center;
       justify-content: space-between;
     }
-    #drag-bar:active { cursor: grabbing; }
-    #app.active #drag-bar { display: flex; }
 
-    .grip { display: flex; gap: 3px; }
-    .grip span { width: 5px; height: 5px; background: var(--accent); border-radius: 50%; }
+    #drag-bar:active {
+      cursor: grabbing;
+    }
+
+    #app.active #drag-bar {
+      display: flex;
+    }
+
+    .grip {
+      display: flex;
+      gap: 3px;
+    }
+
+    .grip span {
+      width: 5px;
+      height: 5px;
+      background: var(--accent);
+      border-radius: 50%;
+    }
 
     .bar-btn {
-      border: none; color: white;
-      padding: 6px 12px; border-radius: 6px; cursor: pointer;
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
       font: 500 12px 'Outfit', sans-serif;
     }
-    #closeBtn { background: var(--danger); }
-    #closeBtn:hover { background: #ff6b7a; }
-    #settingsBtn, #passiveBtn { background: rgba(255,255,255,0.15); }
-    #settingsBtn:hover, #passiveBtn:hover { background: rgba(255,255,255,0.25); }
+
+    #closeBtn {
+      background: var(--danger);
+    }
+
+    #closeBtn:hover {
+      background: #ff6b7a;
+    }
+
+    #settingsBtn,
+    #passiveBtn {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    #settingsBtn:hover,
+    #passiveBtn:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
 
     /* Messages */
     #messages {
-      flex: 1; overflow-y: auto; padding: 8px 8px 4px 8px;
-      display: flex; flex-direction: column;
-      justify-content: flex-end; gap: 4px;
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 8px 4px 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 4px;
       align-items: flex-start;
     }
-    #messages::-webkit-scrollbar { width: 5px; }
-    #messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+
+    #messages::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    #messages::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+    }
 
     .msg {
       background: rgba(15, 15, 25, 0.9);
@@ -99,7 +155,8 @@
       color: var(--text);
       padding: 6px 10px;
       border-radius: 8px;
-      font-size: 13px; line-height: 1.3;
+      font-size: 13px;
+      line-height: 1.3;
       border: 1px solid var(--border);
       animation: slideUp 0.3s ease;
       position: relative;
@@ -108,56 +165,134 @@
       max-width: 90%;
       transition: opacity 0.3s ease;
     }
+
     .msg::before {
-      content: ''; position: absolute;
-      top: 0; left: 0; width: 3px; height: 100%;
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 3px;
+      height: 100%;
       background: linear-gradient(180deg, var(--accent), var(--accent2));
       border-radius: 3px 0 0 3px;
     }
 
     .msg .del {
-      display: none; position: absolute;
-      top: 4px; right: 4px;
-      width: 18px; height: 18px;
-      background: var(--danger); border: none;
-      border-radius: 4px; cursor: pointer;
-      color: white; font-size: 10px;
-      line-height: 18px; text-align: center;
+      display: none;
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 18px;
+      height: 18px;
+      background: var(--danger);
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      color: white;
+      font-size: 10px;
+      line-height: 18px;
+      text-align: center;
     }
-    #app.active .msg:hover .del { display: block; }
+
+    #app.active .msg:hover .del {
+      display: block;
+    }
 
     .msg .user {
-      color: var(--accent); font-weight: 600;
+      color: var(--accent);
+      font-weight: 600;
       font: 600 11px 'JetBrains Mono', monospace;
       display: inline;
       margin-right: 6px;
     }
-    
-    .msg .text { display: inline; }
+
+    .msg .text {
+      display: inline;
+    }
 
     .msg img {
-      max-width: 120px; display: block;
-      margin-top: 8px; border-radius: 6px;
+      max-width: 120px;
+      display: block;
+      margin-top: 8px;
+      border-radius: 6px;
       border: 1px solid var(--border);
     }
 
     /* Resize edges - invisible but functional */
     .resize-edge {
-      display: none; position: absolute;
+      display: none;
+      position: absolute;
       background: transparent;
       z-index: 100;
     }
-    #app.active .resize-edge { display: block; }
-    
-    .resize-edge.top { top: 0; left: 10px; right: 10px; height: 8px; cursor: n-resize; }
-    .resize-edge.bottom { bottom: 0; left: 10px; right: 10px; height: 8px; cursor: s-resize; }
-    .resize-edge.left { left: 0; top: 10px; bottom: 10px; width: 8px; cursor: w-resize; }
-    .resize-edge.right { right: 0; top: 10px; bottom: 10px; width: 8px; cursor: e-resize; }
-    
-    .resize-edge.top-left { top: 0; left: 0; width: 14px; height: 14px; cursor: nw-resize; }
-    .resize-edge.top-right { top: 0; right: 0; width: 14px; height: 14px; cursor: ne-resize; }
-    .resize-edge.bottom-left { bottom: 0; left: 0; width: 14px; height: 14px; cursor: sw-resize; }
-    .resize-edge.bottom-right { bottom: 0; right: 0; width: 14px; height: 14px; cursor: se-resize; }
+
+    #app.active .resize-edge {
+      display: block;
+    }
+
+    .resize-edge.top {
+      top: 0;
+      left: 10px;
+      right: 10px;
+      height: 8px;
+      cursor: n-resize;
+    }
+
+    .resize-edge.bottom {
+      bottom: 0;
+      left: 10px;
+      right: 10px;
+      height: 8px;
+      cursor: s-resize;
+    }
+
+    .resize-edge.left {
+      left: 0;
+      top: 10px;
+      bottom: 10px;
+      width: 8px;
+      cursor: w-resize;
+    }
+
+    .resize-edge.right {
+      right: 0;
+      top: 10px;
+      bottom: 10px;
+      width: 8px;
+      cursor: e-resize;
+    }
+
+    .resize-edge.top-left {
+      top: 0;
+      left: 0;
+      width: 14px;
+      height: 14px;
+      cursor: nw-resize;
+    }
+
+    .resize-edge.top-right {
+      top: 0;
+      right: 0;
+      width: 14px;
+      height: 14px;
+      cursor: ne-resize;
+    }
+
+    .resize-edge.bottom-left {
+      bottom: 0;
+      left: 0;
+      width: 14px;
+      height: 14px;
+      cursor: sw-resize;
+    }
+
+    .resize-edge.bottom-right {
+      bottom: 0;
+      right: 0;
+      width: 14px;
+      height: 14px;
+      cursor: se-resize;
+    }
 
 
     /* Join text */
@@ -167,14 +302,23 @@
       color: var(--text-dim);
       display: none;
     }
-    #join-text.visible { display: block; }
-    #join-text span { color: var(--accent); }
+
+    #join-text.visible {
+      display: block;
+    }
+
+    #join-text span {
+      color: var(--accent);
+    }
 
     /* QR Code display */
     #qr-overlay {
       display: none;
       position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       flex-direction: column;
       align-items: center;
       justify-content: center;
@@ -185,15 +329,18 @@
       padding: 20px;
       text-align: center;
     }
-    #qr-overlay.visible { display: flex; }
-    
+
+    #qr-overlay.visible {
+      display: flex;
+    }
+
     #qr-overlay .qr-main-title {
       font: 600 16px 'Outfit', sans-serif;
       color: var(--accent);
       margin-bottom: 20px;
       text-align: center;
     }
-    
+
     #qr-overlay img {
       width: 140px;
       height: 140px;
@@ -203,13 +350,13 @@
       margin-bottom: 12px;
       box-shadow: 0 4px 20px rgba(0, 212, 170, 0.3);
     }
-    
+
     #qr-overlay .qr-title {
       font: 600 12px 'JetBrains Mono', monospace;
       color: var(--accent);
       margin-bottom: 6px;
     }
-    
+
     #qr-overlay .qr-url {
       font: 10px 'JetBrains Mono', monospace;
       color: var(--text-dim);
@@ -220,7 +367,7 @@
       border: 1px solid var(--border);
       max-width: 90%;
     }
-    
+
     #qr-overlay .qr-back-btn {
       margin-top: 16px;
       padding: 8px 20px;
@@ -231,29 +378,38 @@
       font: 500 12px 'Outfit', sans-serif;
       cursor: pointer;
     }
+
     #qr-overlay .qr-back-btn:hover {
       background: rgba(255, 255, 255, 0.2);
     }
 
     /* Mode indicator */
     #mode {
-      position: absolute; bottom: 10px; left: 10px;
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
       background: rgba(15, 15, 25, 0.9);
       backdrop-filter: blur(10px);
-      padding: 5px 10px; border-radius: 6px;
+      padding: 5px 10px;
+      border-radius: 6px;
       font: 10px 'JetBrains Mono', monospace;
       color: var(--text-dim);
-      opacity: 0; transition: opacity 0.3s;
+      opacity: 0;
+      transition: opacity 0.3s;
       pointer-events: none;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     }
-    #mode.show { opacity: 1; }
+
+    #mode.show {
+      opacity: 1;
+    }
 
     /* Settings panel */
     #settings {
       display: none;
       position: absolute;
-      top: 50%; left: 50%;
+      top: 50%;
+      left: 50%;
       transform: translate(-50%, -50%);
       background: rgba(15, 15, 25, 0.98);
       backdrop-filter: blur(16px);
@@ -267,14 +423,22 @@
       max-height: 90vh;
       overflow: hidden;
     }
+
     /* Actual scroll container (native scrollbar fully hidden) */
     #settings-scroll {
       max-height: 90vh;
       overflow-y: auto;
       padding: 20px 24px;
-      scrollbar-width: none; /* Firefox */
+      scrollbar-width: none;
+      /* Firefox */
     }
-    #settings-scroll::-webkit-scrollbar { width: 0; height: 0; } /* Chromium/Electron */
+
+    #settings-scroll::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+
+    /* Chromium/Electron */
 
     /* Custom thumb-only scrollbar (no buttons) */
     #settings-scrollbar {
@@ -284,8 +448,10 @@
       bottom: 14px;
       width: 6px;
       background: transparent;
-      pointer-events: none; /* thumb enables interaction */
+      pointer-events: none;
+      /* thumb enables interaction */
     }
+
     #settings-scroll-thumb {
       position: absolute;
       top: 0;
@@ -298,11 +464,15 @@
       pointer-events: auto;
       cursor: pointer;
     }
+
     #settings-scroll-thumb:hover {
       opacity: 1;
       background: rgba(0, 196, 158, 1);
     }
-    #settings.open { display: block; }
+
+    #settings.open {
+      display: block;
+    }
 
     #settings h3 {
       margin: 0 0 16px 0;
@@ -314,11 +484,17 @@
     }
 
     #settings .close-settings {
-      background: none; border: none;
-      color: var(--text-dim); cursor: pointer;
-      font-size: 16px; padding: 0;
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0;
     }
-    #settings .close-settings:hover { color: var(--text); }
+
+    #settings .close-settings:hover {
+      color: var(--text);
+    }
 
     #settings label {
       font: 11px 'JetBrains Mono', monospace;
@@ -347,12 +523,14 @@
       min-width: 28px;
       text-align: center;
     }
+
     #settings .settings-link {
       color: var(--accent);
       text-decoration: none;
       cursor: pointer;
       user-select: text;
     }
+
     #settings .settings-link:hover {
       text-decoration: none;
       opacity: 0.95;
@@ -365,12 +543,14 @@
       gap: 8px;
       margin: 4px 0 12px 0;
     }
+
     #settings .password-input-wrap {
       position: relative;
       flex: 1;
       min-width: 0;
       pointer-events: auto;
     }
+
     #settings #admin-password {
       width: 100%;
       padding: 10px 10px;
@@ -380,14 +560,18 @@
       font: 600 11px 'JetBrains Mono', monospace;
       color: var(--accent);
       outline: none;
-      user-select: none; /* selectable only when visible */
+      user-select: none;
+      /* selectable only when visible */
       -webkit-user-select: none;
-      padding-right: 34px; /* space for copy icon */
+      padding-right: 34px;
+      /* space for copy icon */
     }
+
     #settings #admin-password.visible {
       user-select: text;
       -webkit-user-select: text;
     }
+
     #settings #admin-password-copy {
       position: absolute;
       right: 6px;
@@ -399,7 +583,8 @@
       border: 1px solid rgba(255, 255, 255, 0.12);
       background: rgba(0, 0, 0, 0.20);
       color: rgba(255, 255, 255, 0.88);
-      display: none; /* only shown when password visible */
+      display: none;
+      /* only shown when password visible */
       align-items: center;
       justify-content: center;
       cursor: pointer;
@@ -408,16 +593,20 @@
       font-size: 14px;
       z-index: 2;
     }
+
     #settings #admin-password-copy:hover {
       border-color: rgba(255, 255, 255, 0.18);
       color: rgba(255, 255, 255, 0.85);
     }
+
     #settings #admin-password-copy:active {
       transform: translateY(-50%) scale(0.98);
     }
+
     #settings #admin-password-copy.show {
       display: inline-flex;
     }
+
     #settings #admin-password-toggle,
     #settings #admin-password-copy-btn {
       flex: 0 0 auto;
@@ -429,6 +618,7 @@
       font: 600 11px 'JetBrains Mono', monospace;
       cursor: pointer;
     }
+
     #settings #admin-password-toggle:hover,
     #settings #admin-password-copy-btn:hover {
       background: rgba(255, 255, 255, 0.16);
@@ -451,14 +641,17 @@
       padding-right: 34px;
       cursor: text;
     }
+
     #settings #cee-api-key:focus {
       border-color: rgba(0, 212, 170, 0.5);
       background: rgba(255, 255, 255, 0.08);
     }
+
     #settings #cee-api-key::placeholder {
       color: var(--text-dim);
       font-weight: 400;
     }
+
     #settings #cee-api-key-copy {
       position: absolute;
       right: 6px;
@@ -479,13 +672,16 @@
       font-size: 14px;
       z-index: 2;
     }
+
     #settings #cee-api-key-copy:hover {
       border-color: rgba(255, 255, 255, 0.18);
       color: rgba(255, 255, 255, 0.85);
     }
+
     #settings #cee-api-key-copy.show {
       display: inline-flex;
     }
+
     #settings #cee-api-key-toggle {
       flex: 0 0 auto;
       padding: 10px 10px;
@@ -496,6 +692,7 @@
       font: 600 11px 'JetBrains Mono', monospace;
       cursor: pointer;
     }
+
     /* Custom instructions textarea styling */
     #settings #ceeSystemPrompt {
       width: 100%;
@@ -509,43 +706,57 @@
       resize: vertical;
       min-height: 50px;
       max-height: 120px;
-      scrollbar-width: none; /* Firefox - hide native scrollbar */
+      scrollbar-width: none;
+      /* Firefox - hide native scrollbar */
     }
+
     #settings #ceeSystemPrompt:focus {
       border-color: rgba(255, 255, 255, 0.28);
       background: rgba(255, 255, 255, 0.08);
     }
+
     #settings #ceeSystemPrompt::placeholder {
       color: var(--text-dim);
     }
+
     /* Hide native scrollbar completely - same as settings panel */
     #settings #ceeSystemPrompt::-webkit-scrollbar {
       width: 0;
       height: 0;
       display: none;
     }
+
     #settings #cee-api-key-toggle:hover {
       background: rgba(255, 255, 255, 0.16);
     }
 
     /* Settings backdrop */
-    #settings-backdrop, #confirm-backdrop {
+    #settings-backdrop,
+    #confirm-backdrop {
       display: none;
       position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       background: rgba(0, 0, 0, 0.4);
       z-index: 150;
       /* Ensure the dimming layer respects the overlay rounded corners */
       border-radius: 12px;
       clip-path: inset(0 round 12px);
     }
-    #settings-backdrop.open, #confirm-backdrop.open { display: block; }
+
+    #settings-backdrop.open,
+    #confirm-backdrop.open {
+      display: block;
+    }
 
     /* Confirm dialog */
     #confirm-dialog {
       display: none;
       position: absolute;
-      top: 50%; left: 50%;
+      top: 50%;
+      left: 50%;
       transform: translate(-50%, -50%);
       background: rgba(15, 15, 25, 0.98);
       backdrop-filter: blur(16px);
@@ -557,7 +768,10 @@
       text-align: center;
       min-width: 260px;
     }
-    #confirm-dialog.open { display: block; }
+
+    #confirm-dialog.open {
+      display: block;
+    }
 
     #confirm-dialog p {
       margin: 0 0 20px 0;
@@ -581,23 +795,37 @@
     }
 
     #confirm-dialog .cancel-btn {
-      background: rgba(255,255,255,0.1);
+      background: rgba(255, 255, 255, 0.1);
       color: var(--text);
     }
-    #confirm-dialog .cancel-btn:hover { background: rgba(255,255,255,0.2); }
+
+    #confirm-dialog .cancel-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
 
     #confirm-dialog .confirm-btn {
       background: var(--danger);
       color: white;
     }
-    #confirm-dialog .confirm-btn:hover { background: #ff6b7a; }
+
+    #confirm-dialog .confirm-btn:hover {
+      background: #ff6b7a;
+    }
 
     @keyframes slideUp {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
   </style>
 </head>
+
 <body>
   <div id="app">
     <div id="drag-bar" title="Drag to Move">
@@ -614,7 +842,7 @@
 
     <div id="messages"></div>
     <div id="join-text">Join Chat on Everything: <span id="session-code">ABC123</span></div>
-    
+
     <!-- QR Code Overlay -->
     <div id="qr-overlay">
       <div class="qr-main-title">Chat on Everything</div>
@@ -623,7 +851,7 @@
       <div class="qr-url" id="qr-url"></div>
       <button class="qr-back-btn" id="qr-back-btn">Continue</button>
     </div>
-    
+
     <!-- Resize edges -->
     <div class="resize-edge top" data-dir="n"></div>
     <div class="resize-edge bottom" data-dir="s"></div>
@@ -633,7 +861,7 @@
     <div class="resize-edge top-right" data-dir="ne"></div>
     <div class="resize-edge bottom-left" data-dir="sw"></div>
     <div class="resize-edge bottom-right" data-dir="se"></div>
-    
+
     <div id="settings-backdrop"></div>
     <div id="settings">
       <div id="settings-scroll">
@@ -641,18 +869,20 @@
           Settings
           <button class="close-settings">✕</button>
         </h3>
-        
+
         <!-- Session Info Section -->
         <div style="font:500 12px 'Outfit',sans-serif;color:var(--accent);margin:4px 0 12px 0;">
-      Session Details
+          Session Details
         </div>
         <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
           <label>Mobile URL</label>
-          <a style="font:500 11px 'JetBrains Mono',monospace;margin:4px 0 12px 0;word-break:break-all;display:block" class="settings-link" id="mobile-url" href="#">Loading...</a>
-          
+          <a style="font:500 11px 'JetBrains Mono',monospace;margin:4px 0 12px 0;word-break:break-all;display:block"
+            class="settings-link" id="mobile-url" href="#">Loading...</a>
+
           <label>Admin URL</label>
-          <a style="font:500 11px 'JetBrains Mono',monospace;margin:4px 0 12px 0;word-break:break-all;display:block" class="settings-link" id="admin-url" href="#">Loading...</a>
-          
+          <a style="font:500 11px 'JetBrains Mono',monospace;margin:4px 0 12px 0;word-break:break-all;display:block"
+            class="settings-link" id="admin-url" href="#">Loading...</a>
+
           <label>Admin Password</label>
           <div class="password-row">
             <div class="password-input-wrap">
@@ -663,39 +893,41 @@
           </div>
 
           <label>Hotkey</label>
-          <div style="font:600 11px 'JetBrains Mono',monospace;color:var(--accent);margin:4px 0 12px 0" id="hotkey-value">Ctrl+Shift+O/F9</div>
+          <div style="font:600 11px 'JetBrains Mono',monospace;color:var(--accent);margin:4px 0 12px 0"
+            id="hotkey-value">Ctrl+Shift+O/F9</div>
           <label>Support</label>
-          <div style="font:600 11px 'JetBrains Mono',monospace;color:var(--accent);margin:4px 0 12px 0" id="support-value">Sumedh Supe</div>
+          <div style="font:600 11px 'JetBrains Mono',monospace;color:var(--accent);margin:4px 0 12px 0"
+            id="support-value">Sumedh Supe</div>
         </div>
-        
+
         <!-- Display Settings -->
         <label style="margin-top:0">
           <input type="checkbox" id="hideIp" style="margin-right:8px;accent-color:var(--accent)">
           Hide IP
         </label>
-        
+
         <label style="margin-top:16px">Max Messages</label>
         <div class="setting-row">
           <input type="range" id="maxMsgSlider" min="2" max="10" value="5">
           <span class="value" id="maxMsgValue">5</span>
         </div>
-        
+
         <label style="margin-top:16px">Font Size</label>
         <div class="setting-row">
-        <input type="range" id="fontSizeSlider" min="10" max="48" value="13">
+          <input type="range" id="fontSizeSlider" min="10" max="48" value="13">
           <span class="value" id="fontSizeValue">13</span>
         </div>
-        
+
         <label style="margin-top:16px">
           <input type="checkbox" id="showJoinCode" style="margin-right:8px;accent-color:var(--accent)">
           Show Join Code
         </label>
-        
+
         <label style="margin-top:12px">
           <input type="checkbox" id="showMobileLink" style="margin-right:8px;accent-color:var(--accent)">
           Show QR Code
         </label>
-        
+
         <label style="margin-top:12px">
           <input type="checkbox" id="disableChatHistory" checked style="margin-right:8px;accent-color:var(--accent)">
           Disable Chat History for Others
@@ -724,6 +956,20 @@
           </div>
         </div>
 
+        <!-- Remote Control Settings -->
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+          <div style="font:500 12px 'Outfit',sans-serif;color:var(--accent);margin:4px 0 12px 0;">
+            Remote Control
+          </div>
+          <label style="margin-top:0">
+            <input type="checkbox" id="enableRemoteControl" style="margin-right:8px;accent-color:var(--accent)">
+            Enable Remote Control
+          </label>
+          <div style="font:11px 'Outfit',sans-serif;color:var(--text-dim);margin-top:4px">
+            Allow controlling mouse, keyboard & media from phone
+          </div>
+        </div>
+
         <!-- @Cee AI Agent Settings -->
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
           <div style="font:500 12px 'Outfit',sans-serif;color:var(--accent);margin:4px 0 12px 0;">
@@ -733,10 +979,11 @@
             <input type="checkbox" id="enableCeeAgent" style="margin-right:8px;accent-color:var(--accent)">
             Enable @Cee Agent
           </label>
-          
+
           <div id="ceeApiKeyGroup" style="margin-top:12px;display:none">
             <label>API Provider</label>
-            <select id="ceeApiProvider" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:#1a1a2e;color:var(--text);font:500 13px 'Outfit',sans-serif;outline:none;margin-bottom:12px;cursor:pointer">
+            <select id="ceeApiProvider"
+              style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:#1a1a2e;color:var(--text);font:500 13px 'Outfit',sans-serif;outline:none;margin-bottom:12px;cursor:pointer">
               <option value="openai">OpenAI</option>
               <option value="gemini">Gemini</option>
             </select>
@@ -748,12 +995,15 @@
               </div>
               <button id="cee-api-key-toggle" type="button" aria-label="Show API key">Show</button>
             </div>
-            <div id="ceeApiKeyStatus" style="font:600 11px 'JetBrains Mono',monospace;color:var(--danger);margin:4px 0 8px 0;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid var(--border)">
+            <div id="ceeApiKeyStatus"
+              style="font:600 11px 'JetBrains Mono',monospace;color:var(--danger);margin:4px 0 8px 0;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid var(--border)">
               Not Set
             </div>
             <label style="margin-top:12px">Custom Instructions (optional)</label>
-            <textarea id="ceeSystemPrompt" rows="2" maxlength="300" placeholder="e.g., be like Darth Vader, answer in 10 words only, talk like Yoda..."></textarea>
-            <div style="font:11px 'Outfit',sans-serif;color:var(--text-dim);margin-top:4px">Customize Cee's personality or response style</div>
+            <textarea id="ceeSystemPrompt" rows="2" maxlength="300"
+              placeholder="e.g., be like Darth Vader, answer in 10 words only, talk like Yoda..."></textarea>
+            <div style="font:11px 'Outfit',sans-serif;color:var(--text-dim);margin-top:4px">Customize Cee's personality
+              or response style</div>
           </div>
         </div>
       </div>
@@ -770,7 +1020,7 @@
         <button class="confirm-btn">End Session</button>
       </div>
     </div>
-    
+
     <div id="mode">ACTIVE</div>
   </div>
 
@@ -898,14 +1148,14 @@
       settingsScrollThumb.style.height = `${thumbH}px`;
       settingsScrollThumb.style.transform = `translateY(${top}px)`;
     }
-    
+
     function openSettings() {
       settings.classList.add('open');
       settingsBackdrop.classList.add('open');
       // Let layout happen before calculating scroll metrics.
       requestAnimationFrame(() => requestAnimationFrame(updateSettingsThumb));
     }
-    
+
     function closeSettings() {
       settings.classList.remove('open');
       settingsBackdrop.classList.remove('open');
@@ -1012,7 +1262,7 @@
     const qrImage = $('qr-image');
     const qrUrlEl = $('qr-url');
     let mobileUrl = '';
-    
+
     function updateQRDisplay(show) {
       if (show && mobileUrl) {
         const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(mobileUrl)}`;
@@ -1023,12 +1273,12 @@
         qrOverlay.classList.remove('visible');
       }
     }
-    
+
     showMobileLinkCheckbox.onchange = () => {
       updateQRDisplay(showMobileLinkCheckbox.checked);
       ipcRenderer.send('settings-changed', { showMobileLink: showMobileLinkCheckbox.checked });
     };
-    
+
     // QR back button
     $('qr-back-btn').onclick = () => {
       showMobileLinkCheckbox.checked = false;
@@ -1053,7 +1303,7 @@
 
     // Disable chat history setting
     const disableChatHistoryCheckbox = $('disableChatHistory');
-    
+
     disableChatHistoryCheckbox.onchange = () => {
       ipcRenderer.send('settings-changed', { disableChatHistory: disableChatHistoryCheckbox.checked });
     };
@@ -1098,6 +1348,18 @@
         const val = parseInt(slowModeSlider.value, 10) || 3;
         if (slowModeValueEl) slowModeValueEl.textContent = val;
         ipcRenderer.send('settings-changed', { slowModeSeconds: val });
+      };
+    }
+
+    // Remote Control settings
+    const enableRemoteControlCheckbox = $('enableRemoteControl');
+    if (enableRemoteControlCheckbox) {
+      enableRemoteControlCheckbox.onchange = () => {
+        if (enableRemoteControlCheckbox.checked) {
+          ipcRenderer.send('enable-remote-control');
+        } else {
+          ipcRenderer.send('disable-remote-control');
+        }
       };
     }
 
@@ -1230,7 +1492,7 @@
         // Capture frame from video
         const width = screenVideo.videoWidth;
         const height = screenVideo.videoHeight;
-        
+
         // Resize to max 512px width
         let targetWidth = width;
         let targetHeight = height;
@@ -1264,7 +1526,7 @@
     if (enableCeeAgentCheckbox) {
       enableCeeAgentCheckbox.onchange = async () => {
         updateCeeApiKeyVisibility();
-        
+
         // Initialize or stop screen capture based on toggle
         if (enableCeeAgentCheckbox.checked) {
           const ok = await initScreenCapture();
@@ -1275,7 +1537,7 @@
         } else {
           stopScreenCapture();
         }
-        
+
         ipcRenderer.send('settings-changed', { enableCeeAgent: enableCeeAgentCheckbox.checked });
       };
     }
@@ -1305,7 +1567,7 @@
       ceeApiKeyInput.oninput = () => {
         // Update copy button visibility
         if (ceeApiKeyCopy) ceeApiKeyCopy.classList.toggle('show', ceeApiKeyVisible && ceeApiKeyInput.value.length > 0);
-        
+
         // Debounce save (500ms after typing stops)
         if (ceeApiKeySaveTimeout) clearTimeout(ceeApiKeySaveTimeout);
         ceeApiKeySaveTimeout = setTimeout(() => {
@@ -1339,7 +1601,7 @@
           clipboard.writeText(text);
           ok = true;
         }
-      } catch (_) {}
+      } catch (_) { }
 
       if (!ok) {
         try {
@@ -1347,7 +1609,7 @@
             await navigator.clipboard.writeText(text);
             ok = true;
           }
-        } catch (_) {}
+        } catch (_) { }
       }
 
       if (ceeApiKeyCopy) {
@@ -1373,27 +1635,27 @@
         // Small delay to ensure focus sticks
         setTimeout(() => ceeApiKeyInput.focus(), 10);
       });
-      
+
       // Prevent focus loss when clicking inside the input
       ceeApiKeyInput.addEventListener('click', (e) => {
         e.stopPropagation();
         ceeApiKeyInput.focus();
       });
-      
+
       // When input gets focus, ensure window is focused
       ceeApiKeyInput.addEventListener('focus', () => {
         ipcRenderer.send('request-focus');
       });
-      
+
       // Prevent keyboard events from propagating to parent/document
       ceeApiKeyInput.addEventListener('keydown', (e) => {
         e.stopPropagation();
       });
-      
+
       ceeApiKeyInput.addEventListener('keyup', (e) => {
         e.stopPropagation();
       });
-      
+
       ceeApiKeyInput.addEventListener('keypress', (e) => {
         e.stopPropagation();
       });
@@ -1452,12 +1714,12 @@
         hash = username.charCodeAt(i) + ((hash << 5) - hash);
         hash = hash & hash; // Convert to 32bit integer
       }
-      
+
       // Use hash to generate HSL color
       const hue = Math.abs(hash) % 360;
       const saturation = 65 + (Math.abs(hash >> 8) % 20); // 65-85%
       const lightness = 65 + (Math.abs(hash >> 16) % 15);  // 65-80%
-      
+
       return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
     }
 
@@ -1467,51 +1729,51 @@
     // Message helpers
     function addMsg(user, text, msgId = null) {
       const id = msgId || (--localMsgId); // Use negative IDs for local messages
-      
+
       const el = document.createElement('div');
       el.className = 'msg';
       el.dataset.msgId = id;
       el.innerHTML = `<button class="del">🗑</button><span class="user">${user}:</span><span class="text">${text}</span>`;
-      
+
       // Apply username color
       const userEl = el.querySelector('.user');
       userEl.style.color = getUserColor(user);
-      
+
       // Apply custom font size if set
       if (messages.dataset.fontSize) {
         const size = parseInt(messages.dataset.fontSize);
         el.style.fontSize = size + 'px';
         userEl.style.fontSize = (size - 2) + 'px';
       }
-      
+
       // Delete button handler
       el.querySelector('.del').onclick = () => {
         deleteMessage(el);
       };
-      
+
       // Auto-hide after display time
       setTimeout(() => {
         if (el.parentNode) {
           deleteMessage(el);
         }
       }, MSG_DISPLAY_TIME);
-      
+
       messages.appendChild(el);
       trimMessages();
       messages.scrollTop = messages.scrollHeight;
       updateOpacity();
       updateJoinTextVisibility();
-      
+
       return id;
     }
-    
+
     // Delete message with animation
     function deleteMessage(el) {
       el.style.transition = 'opacity 1.3s';
       el.style.opacity = '0';
       setTimeout(() => { el.remove(); updateOpacity(); updateJoinTextVisibility(); }, 1300);
     }
-    
+
     // Delete message by ID (from admin)
     function deleteMessageById(id) {
       const el = messages.querySelector(`[data-msg-id="${id}"]`);
@@ -1522,12 +1784,12 @@
     ipcRenderer.on('new-message', (_, data) => {
       addMsg(data.user, data.text, data.id);
     });
-    
+
     // Listen for message deletion from admin
     ipcRenderer.on('delete-message', (_, data) => {
       deleteMessageById(data.id);
     });
-    
+
     // Listen for settings updates from admin
     ipcRenderer.on('settings-update', (_, settings) => {
       if (settings.hideIp !== undefined) {
@@ -1579,6 +1841,10 @@
         const secs = parseInt(settings.slowModeSeconds, 10) || 3;
         if (slowModeSlider) slowModeSlider.value = secs;
         if (slowModeValueEl) slowModeValueEl.textContent = secs;
+      }
+      // Remote Control settings
+      if (settings.remoteEnabled !== undefined && enableRemoteControlCheckbox) {
+        enableRemoteControlCheckbox.checked = settings.remoteEnabled;
       }
       // @Cee Agent settings
       if (settings.enableCeeAgent !== undefined && enableCeeAgentCheckbox) {
@@ -1656,12 +1922,12 @@
         try {
           adminPasswordInput.focus({ preventScroll: true });
           adminPasswordInput.setSelectionRange(0, adminPasswordInput.value.length);
-        } catch (_) {}
+        } catch (_) { }
       } else {
         try {
           adminPasswordInput.setSelectionRange(0, 0);
           adminPasswordInput.blur();
-        } catch (_) {}
+        } catch (_) { }
       }
     }
 
@@ -1680,7 +1946,7 @@
           clipboard.writeText(text);
           ok = true;
         }
-      } catch (_) {}
+      } catch (_) { }
 
       // Fallback (in case clipboard module is unavailable)
       if (!ok) {
@@ -1689,7 +1955,7 @@
             await navigator.clipboard.writeText(text);
             ok = true;
           }
-        } catch (_) {}
+        } catch (_) { }
       }
 
       if (adminPasswordCopy) {
@@ -1716,4 +1982,5 @@
     setTimeout(() => { mode.classList.add('show'); setTimeout(() => mode.classList.remove('show'), 2000); }, 500);
   </script>
 </body>
+
 </html>

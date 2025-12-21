@@ -1,15 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <title>Chat on Everything Admin</title>
   <link rel="icon" href="/assets/title_plain.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;500;600&display=swap"
+    rel="stylesheet">
   <style>
     :root {
       /* Theatre dark theme */
@@ -40,12 +44,15 @@
       background-position: right 12px center;
       padding-right: 36px !important;
     }
+
     select option {
       background: #0a0a0a;
       color: #e8e8e8;
       padding: 12px;
     }
-    select option:hover, select option:focus {
+
+    select option:hover,
+    select option:focus {
       background: #1a1a1a;
     }
 
@@ -59,7 +66,7 @@
       color: var(--text);
       overflow: hidden;
     }
-    
+
     body {
       margin: 0;
       padding: 0;
@@ -114,7 +121,7 @@
       width: 40px;
       height: 40px;
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(0, 0, 0, 0.6);
       border: 1px solid var(--border);
       color: var(--text);
       font-size: 20px;
@@ -126,7 +133,7 @@
     }
 
     #mode-toggle-btn:hover {
-      background: rgba(255, 255, 255, 0.25);
+      background: rgba(0, 0, 0, 0.8);
     }
 
     #mode-toggle-btn:active {
@@ -134,15 +141,54 @@
     }
 
     #mode-toggle-btn.passive {
-      background: rgba(138, 138, 138, 0.3);
+      background: rgba(138, 138, 138, 0.4);
     }
 
-    #mode-toggle-btn {
+    /* Remote control button - styled similar to eye button */
+    #remote-control-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 20px;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    #remote-control-btn:hover {
+      background: rgba(0, 0, 0, 0.8);
+    }
+
+    #remote-control-btn:active {
+      transform: scale(0.95);
+    }
+
+    #remote-control-btn.active {
+      background: rgba(0, 150, 100, 0.5);
+    }
+
+    /* Show buttons only when authenticated and connected */
+    #mode-toggle-btn,
+    #remote-control-btn {
       display: none;
     }
 
-    #admin-panel.visible ~ * #mode-toggle-btn,
+    #admin-panel.visible~* #mode-toggle-btn,
     body:has(#admin-panel.visible) #mode-toggle-btn {
+      display: flex;
+    }
+
+    /* Remote button only shows when admin visible AND remote is enabled */
+    #admin-panel.visible.remote-enabled~* #remote-control-btn,
+    body:has(#admin-panel.visible.remote-enabled) #remote-control-btn {
       display: flex;
     }
 
@@ -317,8 +363,15 @@
     }
 
     @keyframes slideIn {
-      from { opacity: 0; transform: translateX(-10px); }
-      to { opacity: 1; transform: translateX(0); }
+      from {
+        opacity: 0;
+        transform: translateX(-10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
     }
 
     .msg-item .content {
@@ -513,11 +566,11 @@
       transition: 0.3s;
     }
 
-    .toggle input:checked + .toggle-slider {
+    .toggle input:checked+.toggle-slider {
       background: rgba(255, 255, 255, 0.16);
     }
 
-    .toggle input:checked + .toggle-slider::before {
+    .toggle input:checked+.toggle-slider::before {
       transform: translateX(22px);
     }
 
@@ -526,6 +579,7 @@
       header {
         padding-top: calc(20px + env(safe-area-inset-top));
       }
+
       #message-input-area {
         padding-bottom: calc(12px + env(safe-area-inset-bottom));
       }
@@ -543,6 +597,7 @@
       flex-direction: column;
       gap: 8px;
     }
+
     .blocked-ip-item {
       display: flex;
       align-items: center;
@@ -553,11 +608,13 @@
       border-radius: 10px;
       background: rgba(15, 15, 25, 0.45);
     }
+
     .blocked-ip-item .ip {
       font: 600 12px 'JetBrains Mono', monospace;
       color: rgba(255, 255, 255, 0.75);
       word-break: break-all;
     }
+
     .blocked-ip-item button {
       padding: 8px 10px;
       border-radius: 10px;
@@ -566,6 +623,7 @@
       color: rgba(255, 255, 255, 0.80);
       cursor: pointer;
     }
+
     .blocked-ip-item button:hover {
       background: transparent;
       border-color: rgba(255, 255, 255, 0.28);
@@ -579,7 +637,11 @@
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
     }
-    #admin-emoji-bar::-webkit-scrollbar { height: 0; }
+
+    #admin-emoji-bar::-webkit-scrollbar {
+      height: 0;
+    }
+
     .emoji-btn {
       border: 1px solid rgba(255, 255, 255, 0.14);
       background: transparent;
@@ -591,7 +653,10 @@
       cursor: pointer;
       flex: 0 0 auto;
     }
-    .emoji-btn:active { transform: scale(0.95); }
+
+    .emoji-btn:active {
+      transform: scale(0.95);
+    }
 
     #customEmojiInput {
       width: 120px;
@@ -609,12 +674,448 @@
       font-size: 18px;
       flex: 0 0 auto;
     }
+
+    /* ============================================
+       REMOTE CONTROL STYLES
+       ============================================ */
+
+    /* Remote Control Panel - Full screen overlay */
+    #remote-panel {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--bg-solid);
+      z-index: 1000;
+      flex-direction: column;
+    }
+
+    #remote-panel.visible {
+      display: flex;
+    }
+
+    .remote-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.9);
+    }
+
+    .remote-header h2 {
+      margin: 0;
+      font: 600 18px 'Outfit', sans-serif;
+      color: var(--text);
+    }
+
+    .remote-close-btn,
+    .remote-settings-btn {
+      width: 40px;
+      height: 40px;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      font-size: 18px;
+      cursor: pointer;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .remote-close-btn:hover,
+    .remote-settings-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Remote tabs */
+    .remote-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.6);
+    }
+
+    .remote-tab {
+      flex: 1;
+      padding: 14px 8px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-dim);
+      font: 500 12px 'Outfit', sans-serif;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .remote-tab.active {
+      color: rgba(255, 255, 255, 0.9);
+      border-bottom-color: rgba(100, 180, 255, 0.6);
+    }
+
+    /* Remote tab content */
+    .remote-content {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .remote-content.active {
+      display: flex;
+    }
+
+    /* Touch pad */
+    .touch-pad {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      margin: 16px;
+      min-height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+      font-size: 14px;
+      touch-action: none;
+      user-select: none;
+      position: relative;
+    }
+
+    .touch-pad::after {
+      content: 'Move your finger to control the mouse';
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    .touch-pad.active::after {
+      opacity: 0;
+    }
+
+    /* Mouse buttons */
+    .mouse-buttons {
+      display: flex;
+      gap: 12px;
+      padding: 0 16px 16px;
+    }
+
+    .mouse-btn {
+      flex: 1;
+      padding: 18px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-strong);
+      color: var(--text);
+      font: 600 14px 'Outfit', sans-serif;
+      cursor: pointer;
+      transition: background 0.1s, transform 0.1s;
+    }
+
+    .mouse-btn:active {
+      transform: scale(0.96);
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Keyboard content */
+    .keyboard-input-area {
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+    }
+
+    #remote-keyboard-input {
+      width: 80%;
+      max-width: 320px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-strong);
+      border-radius: 12px;
+      color: var(--text);
+      font: 16px 'JetBrains Mono', monospace;
+      outline: none;
+      text-align: center;
+    }
+
+    #remote-keyboard-input:focus {
+      border-color: rgba(100, 180, 255, 0.4);
+    }
+
+    .special-keys {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 16px 8px;
+    }
+
+    .key-row {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .key-btn {
+      padding: 14px 18px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font: 500 14px 'Outfit', sans-serif;
+      cursor: pointer;
+      min-width: 80px;
+      text-align: center;
+    }
+
+    .key-btn:active {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .key-btn.small {
+      padding: 12px 14px;
+      font-size: 12px;
+      min-width: 70px;
+    }
+
+    /* Navigation Keys (Home/End, PageUp/PageDown) */
+    .nav-keys-container {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      padding: 16px;
+    }
+
+    .nav-key-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .nav-key-group .key-btn {
+      min-width: 90px;
+    }
+
+    /* Circular D-Pad Arrow Keys */
+    .arrow-dpad {
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .dpad-container {
+      position: relative;
+      width: 160px;
+      height: 160px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 50%;
+      border: 2px solid var(--border);
+    }
+
+    .dpad-btn {
+      position: absolute;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+
+    .dpad-btn:active {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .dpad-up {
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .dpad-down {
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .dpad-left {
+      left: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .dpad-right {
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .dpad-center {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 50%;
+      border: 1px solid var(--border);
+    }
+
+    /* Media controls */
+    .media-section {
+      padding: 20px 16px;
+    }
+
+    .media-section h3 {
+      margin: 0 0 16px;
+      font: 600 14px 'Outfit', sans-serif;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .media-row {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .media-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-strong);
+      color: var(--text);
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .media-btn.large {
+      width: 80px;
+      height: 80px;
+      font-size: 32px;
+    }
+
+    .media-btn:active {
+      background: rgba(255, 255, 255, 0.12);
+      transform: scale(0.95);
+    }
+
+    .volume-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 24px;
+    }
+
+    .volume-row input[type="range"] {
+      flex: 1;
+    }
+
+    /* VLC controls */
+    .vlc-section {
+      padding: 16px;
+    }
+
+    .vlc-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+      justify-content: center;
+    }
+
+    .vlc-btn {
+      padding: 12px 16px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font: 500 13px 'Outfit', sans-serif;
+      cursor: pointer;
+      min-width: 60px;
+      text-align: center;
+    }
+
+    .vlc-btn:active {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .vlc-btn.seek {
+      font: 600 12px 'JetBrains Mono', monospace;
+    }
+
+    /* Settings overlay */
+    .remote-settings-overlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 10;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .remote-settings-overlay.visible {
+      display: block;
+    }
+
+    .remote-settings-overlay h3 {
+      margin: 0 0 20px;
+      font: 600 18px 'Outfit', sans-serif;
+      color: var(--text);
+    }
+
+    .remote-settings-overlay .settings-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      gap: 16px;
+    }
+
+    .remote-settings-overlay .settings-row:last-of-type {
+      border-bottom: none;
+    }
+
+    .remote-settings-overlay .settings-row label {
+      color: var(--text);
+      font: 500 14px 'Outfit', sans-serif;
+      flex-shrink: 0;
+    }
+
+    .remote-settings-overlay .settings-row input[type="range"] {
+      flex: 1;
+      max-width: 160px;
+    }
   </style>
 </head>
+
 <body>
   <div id="app">
     <header>
       <button id="mode-toggle-btn" title="Toggle Passive/Active Mode">👁</button>
+      <button id="remote-control-btn" title="Remote Control">🎮</button>
       <h1>Admin Panel</h1>
       <p>Moderate messages and control settings</p>
       <div class="status">
@@ -737,7 +1238,8 @@
           <label>Custom Emoji Shortcut</label>
           <div class="setting-row">
             <div class="emoji-preview" id="customEmojiCurrent" aria-label="Current custom emoji">⭐</div>
-            <input type="text" id="customEmojiInput" placeholder="Type emoji (blank = ⭐)" maxlength="8" autocomplete="off">
+            <input type="text" id="customEmojiInput" placeholder="Type emoji (blank = ⭐)" maxlength="8"
+              autocomplete="off">
             <button class="btn" id="customEmojiSetBtn" type="button">Set</button>
           </div>
         </div>
@@ -759,26 +1261,32 @@
               <span class="toggle-slider"></span>
             </div>
           </div>
-          
+
           <div id="ceeApiKeyGroup" style="margin-top: 12px; display: none;">
             <label>API Provider</label>
-            <select id="ceeApiProvider" style="width: 100%; padding: 12px 14px; border-radius: 10px; background: #0a0a0a; border: 1px solid var(--border-strong); color: var(--text); font: 14px 'Outfit', sans-serif; margin-bottom: 12px; cursor: pointer;">
+            <select id="ceeApiProvider"
+              style="width: 100%; padding: 12px 14px; border-radius: 10px; background: #0a0a0a; border: 1px solid var(--border-strong); color: var(--text); font: 14px 'Outfit', sans-serif; margin-bottom: 12px; cursor: pointer;">
               <option value="openai">OpenAI</option>
               <option value="gemini">Gemini</option>
             </select>
             <label id="ceeApiKeyLabel">OpenAI API Key</label>
-            <div id="ceeApiKeyStatusIndicator" style="font-size: 12px; padding: 8px 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); margin-bottom: 8px; color: var(--danger);">
+            <div id="ceeApiKeyStatusIndicator"
+              style="font-size: 12px; padding: 8px 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); margin-bottom: 8px; color: var(--danger);">
               Not Set
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
-              <input type="password" id="cee-api-key" placeholder="sk-..." autocomplete="off" style="flex: 1; padding: 12px 14px; border-radius: 10px;">
-              <button class="btn" id="cee-api-key-toggle" type="button" style="width: auto; padding: 12px 16px;">Show</button>
+              <input type="password" id="cee-api-key" placeholder="sk-..." autocomplete="off"
+                style="flex: 1; padding: 12px 14px; border-radius: 10px;">
+              <button class="btn" id="cee-api-key-toggle" type="button"
+                style="width: auto; padding: 12px 16px;">Show</button>
             </div>
             <div style="font-size: 11px; color: var(--text-dim); margin-top: 8px;">
               Users can ask @Cee questions with screen context
             </div>
             <label style="margin-top: 16px;">Custom Instructions (optional)</label>
-            <textarea id="ceeSystemPrompt" rows="2" maxlength="300" placeholder="e.g., be like Darth Vader, answer in 10 words only, talk like Yoda..." style="width: 100%; padding: 12px 14px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-strong); color: var(--text); font: 14px 'Outfit', sans-serif; resize: vertical; min-height: 60px;"></textarea>
+            <textarea id="ceeSystemPrompt" rows="2" maxlength="300"
+              placeholder="e.g., be like Darth Vader, answer in 10 words only, talk like Yoda..."
+              style="width: 100%; padding: 12px 14px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-strong); color: var(--text); font: 14px 'Outfit', sans-serif; resize: vertical; min-height: 60px;"></textarea>
             <div style="font-size: 11px; color: var(--text-dim); margin-top: 6px;">
               Customize Cee's personality or response style
             </div>
@@ -799,13 +1307,137 @@
           <button class="emoji-btn" type="button" data-emoji="👎" aria-label="Boo">👎</button>
           <button class="emoji-btn" type="button" data-emoji="😮" aria-label="Wow">😮</button>
           <button class="emoji-btn" type="button" data-emoji="😢" aria-label="Cry">😢</button>
-          <button class="emoji-btn" type="button" id="admin-custom-emoji-btn" data-emoji="⭐" aria-label="Custom reaction">⭐</button>
+          <button class="emoji-btn" type="button" id="admin-custom-emoji-btn" data-emoji="⭐"
+            aria-label="Custom reaction">⭐</button>
         </div>
         <div class="message-row">
           <input type="text" id="admin-msg-input" placeholder="Send a message..." autocomplete="off">
           <button id="admin-send-btn">➤</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Remote Control Panel (Full Screen Overlay) -->
+  <div id="remote-panel">
+    <div class="remote-header">
+      <button class="remote-close-btn" id="remote-close-btn">✕</button>
+      <h2>Remote Control</h2>
+      <button class="remote-settings-btn" id="remote-settings-btn">⚙️</button>
+    </div>
+
+    <div class="remote-tabs">
+      <button class="remote-tab active" data-remote-tab="media">🎵 Media</button>
+      <button class="remote-tab" data-remote-tab="mouse">🖱️ Mouse</button>
+      <button class="remote-tab" data-remote-tab="keyboard">⌨️ Keyboard</button>
+    </div>
+
+    <!-- Media Tab (Combined Media + VLC) -->
+    <div class="remote-content active" id="remote-media">
+      <div class="media-section">
+        <h3>Playback</h3>
+        <div class="media-row">
+          <button class="media-btn" id="media-prev-btn" title="Previous Track">⏮</button>
+          <button class="media-btn" id="media-play-btn" title="Play/Pause">⏯</button>
+          <button class="media-btn" id="media-next-btn" title="Next Track">⏭</button>
+        </div>
+      </div>
+      <div class="media-section">
+        <h3>Volume</h3>
+        <div class="media-row">
+          <button class="media-btn" id="vol-down-btn" title="Volume Down">-</button>
+          <button class="media-btn" id="vol-mute-btn" title="Mute">🔇</button>
+          <button class="media-btn" id="vol-up-btn" title="Volume Up">+</button>
+        </div>
+      </div>
+      <div class="media-section">
+        <h3>VLC Options</h3>
+        <div class="vlc-row">
+          <button class="vlc-btn" data-vlc="fullscreen">⛶ Fullscreen</button>
+          <button class="vlc-btn" data-vlc="shuffle">Shuffle</button>
+          <button class="vlc-btn" data-vlc="loop">Loop</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mouse Tab -->
+    <div class="remote-content" id="remote-mouse">
+      <div class="touch-pad" id="touch-pad"></div>
+      <div class="mouse-buttons">
+        <button class="mouse-btn" id="mouse-left-btn">Left Click</button>
+        <button class="mouse-btn" id="mouse-right-btn">Right Click</button>
+      </div>
+    </div>
+
+    <!-- Keyboard Tab -->
+    <div class="remote-content" id="remote-keyboard">
+      <!-- Centered Text Input -->
+      <div class="keyboard-input-area">
+        <input type="text" id="remote-keyboard-input" placeholder="Type here and press Enter to send..."
+          autocomplete="off">
+      </div>
+
+      <!-- Row 1: Enter, Back, Space -->
+      <div class="special-keys">
+        <div class="key-row">
+          <button class="key-btn" data-key="Enter">↵ Enter</button>
+          <button class="key-btn" data-key="Backspace">⌫ Back</button>
+          <button class="key-btn" data-key="Space">␣ Space</button>
+        </div>
+      </div>
+
+      <!-- Row 2: Esc, Tab, Del -->
+      <div class="special-keys">
+        <div class="key-row">
+          <button class="key-btn small" data-key="Escape">⎋ Esc</button>
+          <button class="key-btn small" data-key="Tab">⇥ Tab</button>
+          <button class="key-btn small" data-key="Delete">⌦ Del</button>
+        </div>
+      </div>
+
+      <!-- Arrow D-Pad (Circular Layout) -->
+      <div class="arrow-dpad">
+        <div class="dpad-container">
+          <button class="dpad-btn dpad-up" data-key="ArrowUp">▲</button>
+          <button class="dpad-btn dpad-left" data-key="ArrowLeft">◀</button>
+          <div class="dpad-center"></div>
+          <button class="dpad-btn dpad-right" data-key="ArrowRight">▶</button>
+          <button class="dpad-btn dpad-down" data-key="ArrowDown">▼</button>
+        </div>
+      </div>
+
+      <!-- Navigation Keys: Home/End and PageUp/PageDown as vertical groups -->
+      <div class="nav-keys-container">
+        <div class="nav-key-group">
+          <button class="key-btn small" data-key="Home">⇱ Home</button>
+          <button class="key-btn small" data-key="End">⇲ End</button>
+        </div>
+        <div class="nav-key-group">
+          <button class="key-btn small" data-key="PageUp">⇞ PgUp</button>
+          <button class="key-btn small" data-key="PageDown">⇟ PgDn</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Overlay -->
+    <div class="remote-settings-overlay" id="remote-settings-overlay">
+      <h3>Remote Settings</h3>
+      <div class="settings-row">
+        <label>Mouse Sensitivity</label>
+        <input type="range" id="mouse-sensitivity" min="0.5" max="3" step="0.1" value="1.5">
+      </div>
+      <div class="settings-row">
+        <label>Scroll Speed</label>
+        <input type="range" id="scroll-speed" min="1" max="10" value="3">
+      </div>
+      <div class="settings-row">
+        <label>Invert Scroll</label>
+        <div class="toggle">
+          <input type="checkbox" id="invert-scroll">
+          <span class="toggle-slider"></span>
+        </div>
+      </div>
+      <button class="vlc-btn" id="settings-close-btn" style="margin-top: 24px; width: 100%;">Close Settings</button>
     </div>
   </div>
 
@@ -862,7 +1494,7 @@
     let emojiDirectSend = true; // When true, emoji buttons send directly; when false, insert into text box
     let slowModeEnabled = false;
     let slowModeSeconds = 3;
-    
+
     // Reconnection state
     let reconnectAttempts = 0;
     let reconnectTimer = null;
@@ -872,18 +1504,18 @@
     const MAX_RECONNECT_ATTEMPTS = 50;
     const RECONNECT_DELAY_BASE = 1000;
     const HEARTBEAT_INTERVAL = 25000;
-    
+
     // Detect if page is served over HTTPS (secure tunnel)
     const isSecure = window.location.protocol === 'https:';
 
     // Load saved values
     // Check if we're accessing via local URL - if so, ALWAYS use local WebSocket
-    const isLocalUrl = !isSecure && 
-                      (window.location.hostname === 'localhost' || 
-                       window.location.hostname.match(/^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/) ||
-                       !window.location.hostname.includes('.') || 
-                       window.location.hostname.endsWith('.local'));
-    
+    const isLocalUrl = !isSecure &&
+      (window.location.hostname === 'localhost' ||
+        window.location.hostname.match(/^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/) ||
+        !window.location.hostname.includes('.') ||
+        window.location.hostname.endsWith('.local'));
+
     // Check if default WebSocket URL was injected
     if (window.__defaultWsUrl) {
       serverInput.value = window.__defaultWsUrl;
@@ -901,7 +1533,7 @@
     } else {
       serverInput.value = localStorage.getItem('livechat_server') || '';
     }
-    
+
     if (!serverInput.value && window.location.hostname !== 'localhost') {
       if (isSecure) {
         // For HTTPS tunnel, check meta tag for default WebSocket URL
@@ -1025,7 +1657,7 @@
         loginBtn.textContent = 'Login';
       };
     }
-    
+
     function handleWebSocketMessage(event) {
       try {
         const data = JSON.parse(event.data);
@@ -1094,7 +1726,7 @@
             const isLocalNetwork = !currentValue || /^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|localhost|127\.|.*:8765$)/.test(currentValue);
             // Prefer Cloudflare URLs over local addresses
             const isCloudflareUrl = data.wsUrl.includes('trycloudflare.com');
-            
+
             if (isLocalNetwork || (isCloudflareUrl && !currentValue.includes('trycloudflare.com'))) {
               // Extract hostname from ws:// or wss:// URL (remove protocol, keep hostname:port if present)
               let extractedUrl = data.wsUrl;
@@ -1102,7 +1734,7 @@
               extractedUrl = extractedUrl.replace(/^wss?:\/\//, '');
               // Remove trailing slash if present
               extractedUrl = extractedUrl.replace(/\/$/, '');
-              
+
               if (extractedUrl) {
                 serverInput.value = extractedUrl;
                 localStorage.setItem('livechat_server', serverInput.value);
@@ -1123,6 +1755,14 @@
         else if (data.type === 'admin-unblock-ip-result') {
           if (!data.success) {
             alert('Could not unblock IP (not blocked or invalid).');
+          }
+        }
+        else if (data.type === 'remote-enabled-status') {
+          // Show/hide remote control button based on server setting
+          if (data.enabled) {
+            adminPanel.classList.add('remote-enabled');
+          } else {
+            adminPanel.classList.remove('remote-enabled');
           }
         }
         else if (data.type === 'error') {
@@ -1156,21 +1796,21 @@
         reconnectAttempts = 0;
       }
     }
-    
+
     function clearReconnectTimer() {
       if (reconnectTimer) {
         clearTimeout(reconnectTimer);
         reconnectTimer = null;
       }
     }
-    
+
     function clearHeartbeat() {
       if (heartbeatTimer) {
         clearInterval(heartbeatTimer);
         heartbeatTimer = null;
       }
     }
-    
+
     function startHeartbeat() {
       clearHeartbeat();
       heartbeatTimer = setInterval(() => {
@@ -1183,19 +1823,19 @@
         }
       }, HEARTBEAT_INTERVAL);
     }
-    
+
     function scheduleReconnect() {
       if (reconnectTimer) return;
       if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
         setStatus(false, 'Connection lost');
         return;
       }
-      
+
       const delay = Math.min(RECONNECT_DELAY_BASE * Math.pow(1.5, reconnectAttempts), 10000);
       reconnectAttempts++;
-      
+
       setStatus(false, `Reconnecting (${reconnectAttempts})...`);
-      
+
       reconnectTimer = setTimeout(() => {
         reconnectTimer = null;
         if (lastServerAddress && lastPassword) {
@@ -1203,14 +1843,14 @@
         }
       }, delay);
     }
-    
+
     function attemptReconnect() {
       if (ws && ws.readyState === WebSocket.OPEN) return;
-      
+
       const server = lastServerAddress;
       const password = lastPassword;
       if (!server || !password) return;
-      
+
       let wsUrl;
       if (server.startsWith('ws://') || server.startsWith('wss://')) {
         wsUrl = server;
@@ -1219,25 +1859,25 @@
       } else {
         wsUrl = `ws://${server}`;
       }
-      
+
       try {
         ws = new WebSocket(wsUrl);
       } catch (e) {
         scheduleReconnect();
         return;
       }
-      
+
       ws.onopen = () => {
         setStatus(false, 'Authenticating...');
         ws.send(JSON.stringify({ type: 'admin-auth', password }));
       };
-      
+
       ws.onmessage = handleWebSocketMessage;
-      
+
       ws.onerror = () => {
         scheduleReconnect();
       };
-      
+
       ws.onclose = () => {
         clearHeartbeat();
         if (adminPanel.classList.contains('visible')) {
@@ -1265,7 +1905,7 @@
       messagesList.innerHTML = '';
       // Show newest first
       const sortedMessages = [...messages.entries()].reverse();
-      
+
       for (const [id, msg] of sortedMessages) {
         const el = document.createElement('div');
         el.className = 'msg-item';
@@ -1460,13 +2100,13 @@
     // Use touchend for touch devices to prevent keyboard issues
     if (adminEmojiBar) {
       let adminEmojiTouchHandled = false;
-      
+
       function processAdminEmoji(emoji) {
         // Blur any active input first to dismiss keyboard
         if (document.activeElement && document.activeElement !== document.body) {
           document.activeElement.blur();
         }
-        
+
         if (emojiDirectSend) {
           // Send emoji without focusing input
           sendAdminText(emoji, false);
@@ -1478,7 +2118,7 @@
           }
         }
       }
-      
+
       // Handle touch devices
       adminEmojiBar.addEventListener('touchend', (e) => {
         const btn = e.target && e.target.closest ? e.target.closest('button[data-emoji]') : null;
@@ -1490,7 +2130,7 @@
         // Reset flag after a short delay
         setTimeout(() => { adminEmojiTouchHandled = false; }, 100);
       }, { passive: false });
-      
+
       // Handle mouse clicks (desktop fallback)
       adminEmojiBar.addEventListener('click', (e) => {
         if (adminEmojiTouchHandled) return; // Already handled by touch
@@ -1500,7 +2140,7 @@
         e.stopPropagation();
         processAdminEmoji(btn.dataset.emoji);
       });
-      
+
       // Prevent touchstart from causing focus
       adminEmojiBar.addEventListener('touchstart', (e) => {
         if (e.target && e.target.closest && e.target.closest('button[data-emoji]')) {
@@ -1738,7 +2378,7 @@
       }
       lastTouchEnd = now;
     }, { passive: false });
-    
+
     // Reconnect when page becomes visible (user unlocks phone / switches back to tab)
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
@@ -1750,7 +2390,7 @@
         }
       }
     });
-    
+
     // Also try to reconnect on focus
     window.addEventListener('focus', () => {
       if (adminPanel.classList.contains('visible') && lastServerAddress && lastPassword) {
@@ -1760,7 +2400,326 @@
         }
       }
     });
+
+    // ============================================
+    // REMOTE CONTROL FUNCTIONALITY
+    // ============================================
+
+    const remoteControlBtn = $('remote-control-btn');
+    const remotePanel = $('remote-panel');
+    const remoteCloseBtn = $('remote-close-btn');
+    const remoteSettingsBtn = $('remote-settings-btn');
+    const remoteSettingsOverlay = $('remote-settings-overlay');
+    const settingsCloseBtn = $('settings-close-btn');
+    const touchPad = $('touch-pad');
+    const remoteKeyboardInput = $('remote-keyboard-input');
+
+    // Settings
+    let mouseSensitivity = parseFloat(localStorage.getItem('remote_mouse_sensitivity')) || 1.5;
+    let scrollSpeed = parseInt(localStorage.getItem('remote_scroll_speed')) || 3;
+    let invertScroll = localStorage.getItem('remote_invert_scroll') === 'true';
+
+    const mouseSensitivitySlider = $('mouse-sensitivity');
+    const scrollSpeedSlider = $('scroll-speed');
+    const invertScrollCheckbox = $('invert-scroll');
+    if (mouseSensitivitySlider) mouseSensitivitySlider.value = mouseSensitivity;
+    if (scrollSpeedSlider) scrollSpeedSlider.value = scrollSpeed;
+    if (invertScrollCheckbox) invertScrollCheckbox.checked = invertScroll;
+
+    // Helper: Send remote control message
+    function sendRemote(type, data = {}) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type, ...data }));
+      }
+    }
+
+    // Open remote control panel
+    if (remoteControlBtn) {
+      remoteControlBtn.onclick = () => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+          alert('Not connected to server');
+          return;
+        }
+        remotePanel.classList.add('visible');
+        remoteControlBtn.classList.add('active');
+        sendRemote('remote-control-start');
+      };
+    }
+
+    // Close remote control panel
+    if (remoteCloseBtn) {
+      remoteCloseBtn.onclick = () => {
+        remotePanel.classList.remove('visible');
+        remoteControlBtn.classList.remove('active');
+        sendRemote('remote-control-end');
+      };
+    }
+
+    // Settings overlay
+    if (remoteSettingsBtn) {
+      remoteSettingsBtn.onclick = () => {
+        remoteSettingsOverlay.classList.add('visible');
+      };
+    }
+    if (settingsCloseBtn) {
+      settingsCloseBtn.onclick = () => {
+        remoteSettingsOverlay.classList.remove('visible');
+      };
+    }
+
+    // Settings controls
+    if (mouseSensitivitySlider) {
+      mouseSensitivitySlider.oninput = (e) => {
+        mouseSensitivity = parseFloat(e.target.value);
+        localStorage.setItem('remote_mouse_sensitivity', mouseSensitivity);
+      };
+    }
+    if (scrollSpeedSlider) {
+      scrollSpeedSlider.oninput = (e) => {
+        scrollSpeed = parseInt(e.target.value);
+        localStorage.setItem('remote_scroll_speed', scrollSpeed);
+      };
+    }
+    if (invertScrollCheckbox) {
+      invertScrollCheckbox.onchange = (e) => {
+        invertScroll = e.target.checked;
+        localStorage.setItem('remote_invert_scroll', invertScroll);
+      };
+    }
+
+    // Remote tab switching
+    document.querySelectorAll('.remote-tab').forEach(tab => {
+      tab.onclick = () => {
+        document.querySelectorAll('.remote-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.remote-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        const targetId = 'remote-' + tab.dataset.remoteTab;
+        const target = $(targetId);
+        if (target) target.classList.add('active');
+      };
+    });
+
+    // ============================================
+    // TOUCHPAD GESTURE HANDLING
+    // ============================================
+
+    let touchState = {
+      touches: [],
+      lastTap: 0,
+      tapCount: 0,
+      isDragging: false,
+      longPressTimer: null,
+      isLongPress: false
+    };
+
+    if (touchPad) {
+      // Touch start
+      touchPad.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        touchPad.classList.add('active');
+
+        const touches = Array.from(e.touches).map(t => ({
+          id: t.identifier,
+          x: t.clientX,
+          y: t.clientY
+        }));
+        touchState.touches = touches;
+
+        // Long press detection for drag
+        if (touches.length === 1) {
+          touchState.longPressTimer = setTimeout(() => {
+            touchState.isLongPress = true;
+            sendRemote('remote-mouse-down', { button: 'left' });
+            // Haptic feedback if available
+            if (navigator.vibrate) navigator.vibrate(50);
+          }, 500);
+        }
+      }, { passive: false });
+
+      // Touch move
+      touchPad.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+
+        // Cancel long press detection on move
+        if (touchState.longPressTimer) {
+          clearTimeout(touchState.longPressTimer);
+          touchState.longPressTimer = null;
+        }
+
+        const currentTouches = Array.from(e.touches);
+
+        if (currentTouches.length === 1 && touchState.touches.length >= 1) {
+          // Single finger: mouse move
+          const touch = currentTouches[0];
+          const prev = touchState.touches.find(t => t.id === touch.identifier) || touchState.touches[0];
+          const dx = (touch.clientX - prev.x) * mouseSensitivity;
+          const dy = (touch.clientY - prev.y) * mouseSensitivity;
+
+          if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+            console.log('[TouchPad] Sending move:', dx.toFixed(1), dy.toFixed(1));
+            sendRemote('remote-mouse-move', { deltaX: dx, deltaY: dy });
+          }
+
+          touchState.touches = [{ id: touch.identifier, x: touch.clientX, y: touch.clientY }];
+        } else if (currentTouches.length === 2 && touchState.touches.length >= 2) {
+          // Two fingers: scroll
+          const avgY = (currentTouches[0].clientY + currentTouches[1].clientY) / 2;
+          const prevAvgY = (touchState.touches[0].y + touchState.touches[1].y) / 2;
+          let dy = (avgY - prevAvgY) * scrollSpeed * 0.5;
+
+          // Apply invert scroll setting
+          if (invertScroll) dy = -dy;
+
+          if (Math.abs(dy) > 1) {
+            sendRemote('remote-scroll', { deltaX: 0, deltaY: Math.round(dy) });
+          }
+
+          touchState.touches = currentTouches.map(t => ({ id: t.identifier, x: t.clientX, y: t.clientY }));
+        }
+      }, { passive: false });
+
+      // Touch end
+      touchPad.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        touchPad.classList.remove('active');
+
+        // Cancel long press timer
+        if (touchState.longPressTimer) {
+          clearTimeout(touchState.longPressTimer);
+          touchState.longPressTimer = null;
+        }
+
+        // Release if we were in long press drag
+        if (touchState.isLongPress) {
+          sendRemote('remote-mouse-up', { button: 'left' });
+          touchState.isLongPress = false;
+        }
+
+        // Reset touches - NO tap-to-click, use buttons instead
+        touchState.touches = [];
+        touchState.tapCount = 0;
+      }, { passive: false });
+
+      // Touch cancel
+      touchPad.addEventListener('touchcancel', () => {
+        touchPad.classList.remove('active');
+        if (touchState.longPressTimer) clearTimeout(touchState.longPressTimer);
+        if (touchState.isLongPress) {
+          sendRemote('remote-mouse-up', { button: 'left' });
+        }
+        touchState = { touches: [], lastTap: 0, tapCount: 0, isDragging: false, longPressTimer: null, isLongPress: false };
+      });
+    }
+
+    // ============================================
+    // MOUSE BUTTONS
+    // ============================================
+
+    const mouseLeftBtn = $('mouse-left-btn');
+    const mouseRightBtn = $('mouse-right-btn');
+
+    if (mouseLeftBtn) {
+      mouseLeftBtn.onclick = () => {
+        sendRemote('remote-mouse-click', { button: 'left' });
+        if (navigator.vibrate) navigator.vibrate(10);
+      };
+    }
+    if (mouseRightBtn) {
+      mouseRightBtn.onclick = () => {
+        sendRemote('remote-mouse-click', { button: 'right' });
+        if (navigator.vibrate) navigator.vibrate([10, 50, 10]);
+      };
+    }
+
+    // ============================================
+    // KEYBOARD
+    // ============================================
+
+    if (remoteKeyboardInput) {
+      // Send text on Enter
+      remoteKeyboardInput.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const text = remoteKeyboardInput.value;
+          if (text) {
+            sendRemote('remote-keyboard-type', { text });
+            remoteKeyboardInput.value = '';
+          }
+          sendRemote('remote-keyboard-key', { key: 'Enter' });
+        }
+      };
+    }
+
+    // Special keys
+    document.querySelectorAll('.key-btn[data-key]').forEach(btn => {
+      btn.onclick = () => {
+        sendRemote('remote-keyboard-key', { key: btn.dataset.key });
+        if (navigator.vibrate) navigator.vibrate(10);
+      };
+    });
+
+    // ============================================
+    // MEDIA CONTROLS
+    // ============================================
+
+    const mediaPrevBtn = $('media-prev-btn');
+    const mediaPlayBtn = $('media-play-btn');
+    const mediaNextBtn = $('media-next-btn');
+    const mediaSeekBackBtn = $('media-seek-back-btn');
+    const mediaSeekForwardBtn = $('media-seek-forward-btn');
+    const volDownBtn = $('vol-down-btn');
+    const volMuteBtn = $('vol-mute-btn');
+    const volUpBtn = $('vol-up-btn');
+
+    if (mediaPrevBtn) mediaPrevBtn.onclick = () => sendRemote('remote-media', { action: 'prev' });
+    if (mediaPlayBtn) mediaPlayBtn.onclick = () => sendRemote('remote-media', { action: 'play' });
+    if (mediaNextBtn) mediaNextBtn.onclick = () => sendRemote('remote-media', { action: 'next' });
+    if (mediaSeekBackBtn) mediaSeekBackBtn.onclick = () => sendRemote('remote-keyboard-key', { key: 'ArrowLeft' });
+    if (mediaSeekForwardBtn) mediaSeekForwardBtn.onclick = () => sendRemote('remote-keyboard-key', { key: 'ArrowRight' });
+    if (volDownBtn) volDownBtn.onclick = () => sendRemote('remote-volume', { action: 'down' });
+    if (volMuteBtn) volMuteBtn.onclick = () => sendRemote('remote-volume', { action: 'mute' });
+    if (volUpBtn) volUpBtn.onclick = () => sendRemote('remote-volume', { action: 'up' });
+
+    // D-Pad buttons (circular arrow keys)
+    document.querySelectorAll('.dpad-btn').forEach(btn => {
+      btn.onclick = () => {
+        const key = btn.dataset.key;
+        if (key) {
+          sendRemote('remote-keyboard-key', { key });
+          if (navigator.vibrate) navigator.vibrate(15);
+        }
+      };
+    });
+
+    // ============================================
+    // VLC CONTROLS
+    // ============================================
+
+    document.querySelectorAll('.vlc-btn[data-vlc]').forEach(btn => {
+      btn.onclick = () => {
+        sendRemote('remote-vlc', {
+          action: btn.dataset.vlc,
+          value: btn.dataset.value
+        });
+        if (navigator.vibrate) navigator.vibrate(10);
+      };
+    });
+
+    // ============================================
+    // CLEANUP ON DISCONNECT
+    // ============================================
+
+    // Close remote panel when disconnected
+    const originalDisconnect = disconnect;
+    disconnect = function (showUI = true) {
+      if (remotePanel && remotePanel.classList.contains('visible')) {
+        remotePanel.classList.remove('visible');
+        remoteControlBtn.classList.remove('active');
+      }
+      originalDisconnect(showUI);
+    };
+
   </script>
 </body>
-</html>
 
+</html>
