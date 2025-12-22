@@ -1,12 +1,23 @@
-const { app, BrowserWindow, globalShortcut, ipcMain, desktopCapturer, nativeImage } = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain, desktopCapturer } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
+const log = require('electron-log');
+
+// Global Error Handlers
+process.on('uncaughtException', (error) => {
+    log.error('Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (reason) => {
+    log.error('Unhandled Rejection:', reason);
+});
 
 // Internal Modules
 const WebServer = require('./lib/web-server');
 const CeeAgent = require('./lib/cee-agent');
 const RemoteControl = require('./lib/remote-control');
+const config = require('./config');
 
 // --- Global State ---
 let mainWindow;
@@ -19,13 +30,13 @@ let wsTunnel = null;
 let wsTunnelProcess = null;
 let httpTunnelProcess = null;
 
-const WS_PORT = 8765;
+const WS_PORT = config.WS_PORT;
 
 // Settings (Mutable state shared with modules)
 // Settings (Mutable state shared with modules)
 const currentSettings = {
-    maxMessages: 5,
-    fontSize: 16,
+    maxMessages: config.MAX_MESSAGES_DEFAULT,
+    fontSize: config.FONT_SIZE_DEFAULT,
     showJoinCode: false,
     showMobileLink: false,
     disableChatHistory: true, // Default to disabled for others per request
@@ -54,9 +65,8 @@ function safeMkdir(dir) {
 
 function pickLogDir() {
     const candidates = [];
-    try { candidates.push(path.join(process.cwd(), 'chat-logs')); } catch (_) { }
-    try { candidates.push(path.join(__dirname, 'chat-logs')); } catch (_) { }
-    try { candidates.push(path.join(app.getPath('userData'), 'chat-logs')); } catch (_) { }
+    try { candidates.push(path.join(process.cwd(), 'chat-logs')); } catch (_) { /* ignore */ }
+    try { candidates.push(path.join(__dirname, 'chat-logs')); } catch (_) { /* ignore */ }
     for (const dir of candidates) {
         if (!dir) continue;
         if (safeMkdir(dir)) return dir;
@@ -65,7 +75,7 @@ function pickLogDir() {
 }
 
 function writeChatLog(obj) {
-    try { if (chatLogStream) chatLogStream.write(`${JSON.stringify(obj)}\n`); } catch (e) { console.error(e); }
+    try { if (chatLogStream) chatLogStream.write(`${JSON.stringify(obj)}\n`); } catch (e) { log.error(e); }
 }
 
 function initChatLogging() {
@@ -73,11 +83,11 @@ function initChatLogging() {
     const filename = `chat-session-${webServer.sessionCode}-${new Date().toISOString().replace(/[:.]/g, '-')}.jsonl`;
     chatLogStream = fs.createWriteStream(path.join(chatLogDir, filename), { flags: 'a' });
     writeChatLog({ type: 'session-start', sessionCode: webServer.sessionCode, startedAt: new Date().toISOString() });
-    console.log(`Chat logging: ${filename}`);
+    log.info(`Chat logging: ${filename}`);
 }
 
 function writeFeedbackLog(obj) {
-    try { if (feedbackLogStream) feedbackLogStream.write(`${JSON.stringify(obj)}\n`); } catch (e) { console.error(e); }
+    try { if (feedbackLogStream) feedbackLogStream.write(`${JSON.stringify(obj)}\n`); } catch (e) { log.error(e); }
 }
 
 function initFeedbackLoggingForCycle() {
@@ -106,10 +116,14 @@ app.commandLine.appendSwitch('disable-gpu');
 
 function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 450, height: 420, x: 50, y: 300,
+        width: config.WINDOW_WIDTH, height: config.WINDOW_HEIGHT, x: config.WINDOW_X, y: config.WINDOW_Y,
         transparent: true, frame: false, alwaysOnTop: true,
         skipTaskbar: true, hasShadow: false, resizable: false, focusable: true,
-        webPreferences: { nodeIntegration: true, contextIsolation: false }
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, 'preload.js')
+        }
     });
 
     mainWindow.setIgnoreMouseEvents(false);
@@ -141,11 +155,11 @@ function toggleMode() {
 }
 
 // Remote Control state management (Window side)
-let remoteControlActive = false;
+// let remoteControlActive = false; // Unused
 let electronWasIgnoringMouseEvents = false;
 
 function setRemoteControlMode(active) {
-    remoteControlActive = active;
+    // remoteControlActive = active;
     if (mainWindow && !mainWindow.isDestroyed()) {
         if (active) {
             electronWasIgnoringMouseEvents = isPassive;
@@ -179,7 +193,7 @@ webServer.on('admin-connected', (ws) => {
     try {
         ws.send(JSON.stringify({ type: 'mode-state', mode: isPassive ? 'passive' : 'active' }));
         ws.send(JSON.stringify({ type: 'remote-enabled-status', enabled: currentSettings.remoteEnabled }));
-    } catch (_) { }
+    } catch (_) { /* ignore */ }
 });
 
 webServer.on('settings-update', (msg) => {
@@ -192,7 +206,7 @@ webServer.on('settings-update', (msg) => {
     if (msg.hideIp !== undefined) {
         currentSettings.hideIp = !!msg.hideIp;
         if (currentSettings.hideIp && (!httpTunnel || !wsTunnel)) {
-            console.log('Hide IP enabled, attempting to create tunnels...');
+            log.info('Hide IP enabled, attempting to create tunnels...');
             createTunnels();
         }
     }
@@ -333,18 +347,18 @@ ipcMain.handle('get-screen-sources', async () => {
         });
         return sources.map(s => ({ id: s.id, name: s.name }));
     } catch (err) {
-        console.error('[Cee] Failed to get screen sources:', err.message);
+        log.error('[Cee] Failed to get screen sources:', err.message);
         return [];
     }
 });
 
 // --- Tunneling ---
 async function createTunnels() {
-    function startTunnel(port, type) {
+    function startTunnel(port) {
         return new Promise((resolve, reject) => {
             const proc = spawn('cloudflared', ['tunnel', '--url', `http://localhost:${port}`], { stdio: ['ignore', 'pipe', 'pipe'] });
             let resolved = false;
-            let buffer = '';
+            // let buffer = '';
 
             const check = (text) => {
                 const match = text.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/g);
@@ -354,15 +368,15 @@ async function createTunnels() {
                 }
             };
 
-            proc.stdout.on('data', d => { buffer += d; check(d.toString()); });
-            proc.stderr.on('data', d => { buffer += d; check(d.toString()); });
+            proc.stdout.on('data', d => { check(d.toString()); });
+            proc.stderr.on('data', d => { check(d.toString()); });
 
             setTimeout(() => {
                 if (!resolved) {
                     proc.kill();
                     reject(new Error('Timeout'));
                 }
-            }, 15000);
+            }, config.TUNNEL_TIMEOUT_MS);
         });
     }
 
@@ -378,15 +392,15 @@ async function createTunnels() {
         // Correctly set BOTH tunnel URLs on WebServer
         webServer.setTunnelUrls(wsTunnel.url, httpTunnel.url);
 
-        console.log(`Cloudflare WebSocket: ${wsTunnel.url}`);
-        console.log(`Cloudflare Mobile: ${httpTunnel.url}`);
+        log.info(`Cloudflare WebSocket: ${wsTunnel.url}`);
+        log.info(`Cloudflare Mobile: ${httpTunnel.url}`);
 
         // Update clients
         const urls = webServer.getUrls();
         webServer.broadcastToAdmins({ type: 'settings-sync', settings: currentSettings, mobileUrl: urls.mobileUrl, wsUrl: urls.wsUrl });
 
     } catch (e) {
-        console.log('Tunnel creation failed or timed out, using local network only.');
+        log.warn('Tunnel creation failed or timed out, using local network only.');
     }
 }
 
@@ -402,10 +416,10 @@ app.whenReady().then(async () => {
     await createTunnels();
 
     const localIP = webServer.getLocalIP();
-    console.log(`Session: ${webServer.sessionCode}`);
-    console.log(`AdminPW: ${webServer.adminPassword}`);
-    console.log(`Mobile: http://${localIP}:${WS_PORT + 1}?s=${webServer.sessionCode}`);
-    console.log(`Socket: ws://${localIP}:${WS_PORT}`);
+    log.info(`Session: ${webServer.sessionCode}`);
+    log.info(`AdminPW: ${webServer.adminPassword}`);
+    log.info(`Mobile: http://${localIP}:${WS_PORT + 1}?s=${webServer.sessionCode}`);
+    log.info(`Socket: ws://${localIP}:${WS_PORT}`);
 });
 
 function cleanup() {

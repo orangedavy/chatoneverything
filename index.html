@@ -259,7 +259,9 @@
   </div>
 
   <script>
-    const { ipcRenderer, shell, clipboard } = require('electron');
+    const ipcRenderer = window.electronAPI;
+    const shell = { openExternal: window.electronAPI.openExternal };
+    const clipboard = { writeText: window.electronAPI.copyToClipboard };
 
     const $ = id => document.getElementById(id);
     const app = $('app'), dragBar = $('drag-bar');
@@ -312,7 +314,7 @@
     document.onmouseup = () => { dragging = false; resizing = false; resizeDir = ''; };
 
     // Mode toggle
-    ipcRenderer.on('mode-change', (_, m) => {
+    ipcRenderer.on('mode-change', (m) => {
       mode.textContent = m.toUpperCase();
       mode.classList.add('show');
       app.classList.toggle('active', m === 'active');
@@ -792,7 +794,7 @@
     }
 
     // Handle screenshot request from main process
-    ipcRenderer.on('capture-screenshot', async (event) => {
+    ipcRenderer.on('capture-screenshot', async () => {
       const screenshot = await captureScreenFrame();
       ipcRenderer.send('screenshot-result', screenshot);
     });
@@ -1055,17 +1057,18 @@
     }
 
     // Listen for messages from WebSocket server (via main process)
-    ipcRenderer.on('new-message', (_, data) => {
+    ipcRenderer.on('new-message', (data) => {
       addMsg(data.user, data.text, data.id);
     });
 
     // Listen for message deletion from admin
-    ipcRenderer.on('delete-message', (_, data) => {
+    ipcRenderer.on('delete-message', (data) => {
       deleteMessageById(data.id);
     });
 
     // Listen for settings updates from admin
-    ipcRenderer.on('settings-update', (_, settings) => {
+    // Listen for settings updates from admin
+    ipcRenderer.on('settings-update', (settings) => {
       if (settings.hideIp !== undefined) {
         const hideIpCheckbox = $('hideIp');
         if (hideIpCheckbox) hideIpCheckbox.checked = settings.hideIp;

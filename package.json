@@ -8,7 +8,8 @@
     "start:wayland": "electron . --enable-transparent-visuals --disable-gpu --no-sandbox",
     "build": "electron-builder",
     "build:linux": "electron-builder --linux",
-    "build:win": "electron-builder --win"
+    "build:win": "electron-builder --win",
+    "lint": "eslint ."
   },
   "keywords": [
     "electron",
@@ -25,11 +26,15 @@
   "dependencies": {
     "@google/genai": "^1.34.0",
     "@nut-tree-fork/nut-js": "^4.2.6",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "electron-log": "^5.0.0"
   },
   "devDependencies": {
     "electron": "^33.2.0",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "eslint": "^8.56.0",
+    "prettier": "^3.1.1",
+    "eslint-config-prettier": "^9.1.0"
   },
   "build": {
     "appId": "com.sumedh.chatoneverything",
