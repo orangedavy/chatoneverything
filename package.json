@@ -9,6 +9,8 @@
     "build": "electron-builder",
     "build:linux": "electron-builder --linux",
     "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "download-cloudflared": "node scripts/download-cloudflared.js",
     "lint": "eslint ."
   },
   "keywords": [
@@ -61,7 +63,8 @@
           "filter": [
             "dotool",
             "dotoolc",
-            "dotoold"
+            "dotoold",
+            "cloudflared"
           ]
         }
       ]
@@ -71,7 +74,33 @@
         "nsis",
         "portable"
       ],
-      "icon": "assets/title_plain.png"
+      "icon": "assets/title_plain.png",
+      "extraResources": [
+        {
+          "from": "bin/",
+          "to": "bin/",
+          "filter": [
+            "cloudflared.exe"
+          ]
+        }
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "Utility",
+      "icon": "assets/title_plain.png",
+      "extraResources": [
+        {
+          "from": "bin/",
+          "to": "bin/",
+          "filter": [
+            "cloudflared"
+          ]
+        }
+      ]
     }
   }
 }

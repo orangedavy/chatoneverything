@@ -353,10 +353,57 @@ ipcMain.handle('get-screen-sources', async () => {
 });
 
 // --- Tunneling ---
+function getCloudflaredPath() {
+    const isWindows = process.platform === 'win32';
+    const isMac = process.platform === 'darwin';
+    const isLinux = process.platform === 'linux';
+    
+    let binaryName = 'cloudflared';
+    if (isWindows) {
+        binaryName = 'cloudflared.exe';
+    }
+    
+    // Determine bin directory
+    let binDir;
+    if (app && app.isPackaged) {
+        // In packaged app, binaries are in resources/bin
+        binDir = path.join(process.resourcesPath, 'bin');
+    } else {
+        // In development, check local bin directory
+        binDir = path.join(__dirname, 'bin');
+    }
+    
+    // Try to find the binary
+    const primaryPath = path.join(binDir, binaryName);
+    if (fs.existsSync(primaryPath)) {
+        return primaryPath;
+    }
+    
+    // For macOS, try architecture-specific binaries
+    if (isMac) {
+        const arch = process.arch === 'arm64' ? 'arm64' : 'amd64';
+        const archSpecificPath = path.join(binDir, `cloudflared-mac-${arch}`);
+        if (fs.existsSync(archSpecificPath)) {
+            return archSpecificPath;
+        }
+        // Try the other architecture as fallback
+        const otherArch = arch === 'arm64' ? 'amd64' : 'arm64';
+        const otherArchPath = path.join(binDir, `cloudflared-mac-${otherArch}`);
+        if (fs.existsSync(otherArchPath)) {
+            return otherArchPath;
+        }
+    }
+    
+    // Fallback to system PATH
+    log.warn('Bundled cloudflared not found, falling back to system PATH. Tunnel creation may fail if cloudflared is not installed.');
+    return 'cloudflared';
+}
+
 async function createTunnels() {
     function startTunnel(port) {
         return new Promise((resolve, reject) => {
-            const proc = spawn('cloudflared', ['tunnel', '--url', `http://localhost:${port}`], { stdio: ['ignore', 'pipe', 'pipe'] });
+            const cloudflaredPath = getCloudflaredPath();
+            const proc = spawn(cloudflaredPath, ['tunnel', '--url', `http://localhost:${port}`], { stdio: ['ignore', 'pipe', 'pipe'] });
             let resolved = false;
             // let buffer = '';
 
